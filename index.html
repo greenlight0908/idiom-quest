@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>사자성어 여행단</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1b1830">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사자성어">
+<style>
+@font-face {
+  font-family: 'NeoDGM';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/NeoDunggeunmoPro-Regular.woff') format('woff');
+  font-display: swap;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --ink:#1b1830; --night:#2a2545; --paper:#f5ead8;
+  --lantern:#ffb85c; --pink:#ff9eb5; --danger:#e8636f; --jade:#6fc99a;
+}
+html,body{height:100%;}
+body{
+  font-family:'NeoDGM',monospace; background:var(--ink); color:var(--paper);
+  display:flex; align-items:center; justify-content:center; padding:8px;
+  touch-action:manipulation; overflow-x:hidden;
+}
+#wrap{ width:100%; max-width:520px; }
+#hud{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:13px; padding:6px 10px; letter-spacing:1px;
+  border:3px solid var(--paper); border-bottom:none; border-radius:10px 10px 0 0;
+  background:var(--night); min-height:32px;
+}
+#hud .prog{ color:var(--lantern); }
+#stage-wrap{ position:relative; border:3px solid var(--paper); background:#000; border-radius:0 0 10px 10px; overflow:hidden; }
+canvas#cv{ display:block; width:100%; image-rendering:pixelated; }
+#dlg{
+  position:absolute; left:8px; right:8px; bottom:8px;
+  background:#1b1830ee; border:3px solid var(--paper); border-radius:8px;
+  padding:12px 12px 16px; font-size:14px; line-height:1.7;
+  min-height:78px; display:none; cursor:pointer; word-break:keep-all;
+}
+#dlg .speaker{
+  position:absolute; top:-13px; left:10px;
+  background:var(--lantern); color:var(--ink);
+  padding:1px 10px; font-size:12px; border:2px solid var(--ink); border-radius:8px;
+}
+#dlg .cursor{ position:absolute; right:10px; bottom:4px; color:var(--lantern); animation:blink .9s steps(1) infinite; }
+@keyframes blink{50%{opacity:0;}}
+#modal{ position:absolute; inset:0; display:none; background:#000000c8; padding:14px; overflow-y:auto; }
+#modal .box{
+  background:var(--night); border:3px solid var(--paper); border-radius:12px;
+  padding:16px 14px; margin:auto; max-width:440px; box-shadow:5px 5px 0 #00000088;
+}
+#modal .box.mini{ margin-top:12%; }
+.qtext{ font-size:14px; line-height:1.7; margin-bottom:14px; word-break:keep-all; }
+.qtext .tag{ color:var(--lantern); }
+.title-big{ font-size:34px; text-align:center; letter-spacing:6px; margin:6px 0 12px; text-shadow:3px 3px 0 #00000066; }
+.red{ color:var(--danger);} .green{ color:var(--jade);} .yellow{ color:var(--lantern);}
+button.opt, button.btn{
+  font-family:inherit; font-size:15px; width:100%;
+  background:var(--ink); color:var(--paper);
+  border:3px solid var(--paper); border-radius:8px; padding:11px 12px;
+  text-align:left; cursor:pointer; margin-bottom:8px; letter-spacing:1px;
+}
+button.btn{ text-align:center; }
+button.opt:hover,button.opt:focus-visible,button.btn:hover,button.btn:focus-visible{
+  background:var(--lantern); color:var(--ink); border-color:var(--lantern);
+  outline:none; box-shadow:3px 3px 0 #00000066;
+}
+button.btn.primary{ background:var(--lantern); color:var(--ink); border-color:var(--ink); box-shadow:3px 3px 0 #00000066; }
+.explain{
+  background:var(--ink); border:3px solid var(--danger); border-radius:8px;
+  padding:10px 12px; font-size:13px; line-height:1.7; margin:10px 0; word-break:keep-all;
+}
+.explain.good{ border-color:var(--jade); }
+.explain b{ color:var(--lantern); }
+input#nameInput{
+  font-family:inherit; font-size:17px; width:100%; padding:11px;
+  background:var(--ink); color:var(--lantern);
+  border:3px solid var(--paper); border-radius:8px;
+  text-align:center; letter-spacing:2px; margin-bottom:10px;
+}
+input#nameInput:focus{ outline:none; border-color:var(--lantern); }
+#fade{
+  position:absolute; inset:0; background:#000; opacity:0;
+  pointer-events:none; transition:opacity 1s;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; text-align:center; line-height:2; padding:20px; word-break:keep-all;
+}
+#pad{
+  display:grid; grid-template-columns:repeat(3,64px); grid-template-rows:repeat(2,52px);
+  gap:6px; justify-content:center; margin-top:10px;
+}
+#pad button{
+  font-family:inherit; font-size:20px; background:var(--night); color:var(--paper);
+  border:3px solid var(--paper); border-radius:12px; cursor:pointer; user-select:none;
+}
+#pad button:active{ background:var(--lantern); color:var(--ink); }
+#pad .up{grid-column:2;grid-row:1;} #pad .left{grid-column:1;grid-row:2;}
+#pad .down{grid-column:2;grid-row:2;} #pad .right{grid-column:3;grid-row:2;}
+.hint{ font-size:11px; color:#9a917e; text-align:center; margin-top:8px; }
+.shake{ animation:shake .5s; }
+@keyframes shake{0%,100%{transform:translate(0,0);}20%{transform:translate(-8px,4px);}40%{transform:translate(8px,-4px);}60%{transform:translate(-6px,-4px);}80%{transform:translate(6px,4px);}}
+@media (prefers-reduced-motion: reduce){ .shake, #dlg .cursor{animation:none;} #fade{transition:none;} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud"><span id="hudL">사자성어 여행단</span><span class="prog" id="hudR"></span></div>
+  <div id="stage-wrap">
+    <canvas id="cv" width="480" height="352"></canvas>
+    <div id="dlg"><span class="speaker" id="dlgSp"></span><div id="dlgTxt"></div><span class="cursor">▼</span></div>
+    <div id="modal"></div>
+    <div id="fade"></div>
+  </div>
+  <div id="pad">
+    <button class="up" data-d="up">▲</button>
+    <button class="left" data-d="left">◀</button>
+    <button class="down" data-d="down">▼</button>
+    <button class="right" data-d="right">▶</button>
+  </div>
+  <p class="hint">이동: 방향키 · WASD · 화면 버튼　/　대화 넘기기: 화면 터치 · 스페이스</p>
+</div>
+
+<script>
+"use strict";
+/* ═══════════════ 사자성어 50 ═══════════════ */
+const IDIOMS = [
+["망양보뢰","亡羊補牢","양을 잃고 우리를 고침. 일이 잘못된 뒤에 손을 써도 이미 늦음","시험이 다 끝난 뒤에야 부랴부랴 오답 노트를 만들며 후회하는 학생"],
+["화사첨족","畫蛇添足","뱀을 그리고 발을 더함. 쓸데없는 군일로 도리어 일을 그르침","다 쓴 답안지에 괜한 문장을 덧붙였다가 오히려 감점당한 수험생"],
+["정저지와","井底之蛙","우물 안 개구리. 견문이 좁아 넓은 세상을 알지 못함","우리 반 1등이 곧 전국 1등인 줄 아는 학생"],
+["조삼모사","朝三暮四","눈앞의 차이만 알고 결과가 같음을 모름. 잔꾀로 남을 속임","도토리를 '아침 3개, 저녁 4개'에서 '아침 4개, 저녁 3개'로 바꿔 주자 기뻐하는 원숭이들"],
+["고진감래","苦盡甘來","쓴 것이 다하면 단 것이 옴. 고생 끝에 즐거움이 옴","삼 년의 재수 끝에 마침내 합격 통지서를 받아 든 수험생"],
+["결초보은","結草報恩","풀을 묶어 은혜를 갚음. 죽어서라도 은혜를 잊지 않고 갚음","흉년에 목숨을 구해 준 은인의 은혜를 평생 잊지 않고 갚으려는 사람"],
+["청출어람","靑出於藍","쪽에서 나온 물감이 쪽보다 푸름. 제자가 스승보다 뛰어남","스승의 글솜씨를 어느새 훌쩍 뛰어넘은 제자"],
+["표리부동","表裏不同","겉과 속이 같지 않음. 마음이 음흉하여 겉과 속이 다름","겉으로는 친절한 척하면서 뒤로는 험담을 일삼는 사람"],
+["구사일생","九死一生","아홉 번 죽을 뻔하다 한 번 살아남. 죽을 고비를 여러 번 넘김","급류에 휩쓸렸다가 나뭇가지를 붙잡고 간신히 살아난 뱃사공"],
+["적반하장","賊反荷杖","도둑이 도리어 매를 듦. 잘못한 사람이 도리어 성을 냄","새치기를 해 놓고 도리어 뒷사람에게 큰소리치는 사람"],
+["각주구검","刻舟求劍","뱃전에 표시를 새겨 칼을 찾음. 융통성 없이 낡은 생각을 고집함","강물에 칼을 빠뜨리고는 움직이는 뱃전에 자국을 새겨 두는 사람"],
+["온고지신","溫故知新","옛것을 익히고 그것을 미루어 새것을 앎","고전 문학을 깊이 공부하여 오늘날의 글쓰기에 활용하는 학생"],
+["유비무환","有備無患","미리 준비가 되어 있으면 근심할 것이 없음","장마가 오기 전에 미리 지붕을 손봐 피해를 면한 집"],
+["설상가상","雪上加霜","눈 위에 서리가 덮임. 난처한 일이나 불행이 잇따라 일어남","늦잠으로 지각한 날에 하필 쪽지 시험까지 겹친 학생"],
+["금상첨화","錦上添花","비단 위에 꽃을 더함. 좋은 일 위에 좋은 일이 더해짐","성적도 오르고 장학금까지 받게 된 학생"],
+["동병상련","同病相憐","같은 병자끼리 서로 가엾게 여김. 처지가 비슷한 사람끼리 동정함","재수생끼리 서로의 힘든 처지를 알아주고 위로하는 모습"],
+["이심전심","以心傳心","마음에서 마음으로 뜻이 전해짐","말하지 않아도 눈빛만으로 뜻이 통하는 오랜 단짝"],
+["어부지리","漁夫之利","둘이 다투는 사이에 엉뚱한 제삼자가 이익을 챙김","조개와 도요새가 물고 물리며 다투는 틈에 지나가던 어부가 둘 다 잡아감"],
+["오비이락","烏飛梨落","까마귀 날자 배 떨어짐. 우연히 일이 겹쳐 억울하게 의심받음","하필 물건이 없어진 순간에 그 자리를 지나가는 바람에 의심받는 사람"],
+["우공이산","愚公移山","우공이 산을 옮김. 꾸준히 노력하면 반드시 이룸","매일 한 문제씩 십 년을 풀어 기어이 목표를 이룬 사람"],
+["사면초가","四面楚歌","사방에서 들리는 초나라 노래. 도움 없이 완전히 고립된 처지","지원군도 퇴로도 없이 사방을 포위당한 장수"],
+["전화위복","轉禍爲福","재앙이 바뀌어 오히려 복이 됨","시험 낙방을 계기로 오히려 더 잘 맞는 길을 찾게 된 사람"],
+["대기만성","大器晩成","큰 그릇은 늦게 만들어짐. 크게 될 사람은 늦게 이루어짐","남들보다 늦게 시작했지만 마침내 대가의 반열에 오른 예술가"],
+["감언이설","甘言利說","달콤한 말과 이로운 조건으로 남을 꾀는 말","'이 문제집만 풀면 무조건 1등급'이라며 꼬드기는 장사꾼"],
+["견물생심","見物生心","물건을 보면 그것을 가지고 싶은 욕심이 생김","진열장의 최신 게임기를 보자 갑자기 사고 싶어진 마음"],
+["과유불급","過猶不及","지나침은 미치지 못함과 같음","몸에 좋다는 보약을 지나치게 먹다가 도리어 탈이 난 사람"],
+["다다익선","多多益善","많으면 많을수록 더욱 좋음","'병사는 많을수록 좋습니다'라고 답한 한신"],
+["등하불명","燈下不明","등잔 밑이 어두움. 가까이 있는 것을 도리어 알지 못함","온 집을 다 뒤졌는데 찾던 안경이 제 머리 위에 있던 상황"],
+["마이동풍","馬耳東風","말의 귀에 스치는 동풍. 남의 말을 귀담아듣지 않고 흘려버림","아무리 충고해도 한 귀로 듣고 한 귀로 흘리는 친구"],
+["문전성시","門前成市","문 앞이 시장을 이룸. 찾아오는 사람이 매우 많음","맛집으로 소문이 나 새벽부터 문 앞에 줄이 늘어선 가게"],
+["배은망덕","背恩忘德","남에게 입은 은덕을 저버리고 배신함","어려울 때 도와준 친구를 성공하자마자 모른 척하는 사람"],
+["부화뇌동","附和雷同","줏대 없이 남의 의견에 따라 움직임","남들이 산다니까 이유도 모른 채 덩달아 따라 사는 사람"],
+["살신성인","殺身成仁","자기 몸을 희생하여 옳은 일을 이룸","승객을 구하려고 불길 속으로 뛰어든 기관사"],
+["새옹지마","塞翁之馬","변방 노인의 말. 인생의 길흉화복은 예측할 수 없음","아끼던 말을 잃은 일이 돌고 돌아 오히려 복이 된 변방의 노인"],
+["수주대토","守株待兎","그루터기를 지키며 토끼를 기다림. 노력 없이 요행만 바람","한 번 얻어걸린 요행을 또 바라며 밭일을 놓아 버린 농부"],
+["순망치한","脣亡齒寒","입술이 없으면 이가 시림. 한쪽이 망하면 다른 쪽도 위태로움","이웃 나라가 무너지자 덩달아 위태로워진 나라"],
+["십시일반","十匙一飯","열 숟가락이 모여 밥 한 그릇. 여럿이 조금씩 도우면 큰 힘이 됨","반 친구들이 조금씩 용돈을 모아 수해 성금을 마련한 일"],
+["아전인수","我田引水","제 논에 물 대기. 자기에게만 이롭게 생각하거나 행동함","같은 규칙도 자기에게 유리한 쪽으로만 해석하는 사람"],
+["안하무인","眼下無人","눈 아래에 사람이 없음. 방자하고 교만하여 남을 업신여김","조금 유명해지자 아무도 안중에 두지 않고 함부로 구는 사람"],
+["역지사지","易地思之","처지를 바꾸어서 생각하여 봄","다투기 전에 먼저 상대의 입장이 되어 생각해 보는 태도"],
+["오리무중","五里霧中","오 리에 걸친 짙은 안개 속. 갈피를 잡을 수 없음","단서가 하나도 없어 수사가 완전히 미궁에 빠진 사건"],
+["와신상담","臥薪嘗膽","섶에 눕고 쓸개를 맛봄. 목표를 위해 온갖 괴로움을 참고 견딤","패배의 굴욕을 잊지 않으려 매일 쓴 쓸개를 핥으며 힘을 기른 왕"],
+["용두사미","龍頭蛇尾","용의 머리에 뱀의 꼬리. 시작은 거창하나 끝이 흐지부지함","첫 주만 불타오르고 흐지부지 끝난 새해 계획"],
+["우유부단","優柔不斷","어물어물 망설이기만 하고 결단성이 없음","점심 메뉴 하나 고르는 데 삼십 분이 걸리는 사람"],
+["유유상종","類類相從","같은 무리끼리 서로 사귐","책 좋아하는 사람들끼리 자연스럽게 모여 만들어진 독서 모임"],
+["일석이조","一石二鳥","돌 하나로 새 두 마리를 잡음. 한 가지 일로 두 가지 이익을 얻음","운동 삼아 걸어 다녔더니 건강도 챙기고 차비까지 아낀 일"],
+["임기응변","臨機應變","그때그때 처한 형편에 맞추어 일을 알맞게 처리함","발표 자료가 열리지 않자 그 자리에서 판서로 발표를 이어 간 학생"],
+["자업자득","自業自得","자기가 저지른 일의 결과를 자기가 받음","밤새 게임을 하다 시험을 망치고 후회하는 학생"],
+["주마간산","走馬看山","말을 타고 달리며 산천을 구경함. 자세히 보지 않고 대충 훑음","드넓은 박물관을 십 분 만에 휙 둘러보고 나온 관람객"],
+["타산지석","他山之石","다른 산의 돌. 남의 하찮은 언행도 자신을 닦는 데 도움이 됨","친구의 실수를 보고 자신의 태도를 되돌아보며 가다듬는 사람"],
+["감탄고토","甘呑苦吐","달면 삼키고 쓰면 뱉음. 옳고 그름보다 제 이익에 따라 태도를 바꿈","이득이 될 땐 간이라도 빼줄 듯하다가 손해다 싶자 바로 등을 돌리는 동업자"],
+["갑론을박","甲論乙駁","여러 사람이 서로 자기 주장을 내세우며 상대편을 반박함","학급 회의가 결론 없이 주장과 반박만 오가며 한없이 길어지는 상황"],
+["거두절미","去頭截尾","머리와 꼬리를 잘라 버림. 군더더기를 빼고 요점만 말함","바쁜 부장님 앞에서 앞뒤 설명을 다 빼고 결론부터 보고하는 사원"],
+["격세지감","隔世之感","세대가 바뀐 듯한 느낌. 변화가 커서 딴 세상처럼 느껴짐","십 년 만에 돌아온 고향이 몰라보게 변해 딴 세상처럼 느껴지는 사람"],
+["견원지간","犬猿之間","개와 원숭이의 사이. 서로 몹시 미워하는 관계","마주치기만 하면 으르렁거리며 다투는 두 앙숙"],
+["결자해지","結者解之","매듭을 묶은 사람이 풀어야 함. 일을 저지른 사람이 해결해야 함","헛소문을 퍼뜨린 당사자가 직접 나서서 소문을 바로잡는 상황"],
+["경거망동","輕擧妄動","경솔하여 생각 없이 망령되게 행동함","사실 확인도 하지 않고 소문만 듣고 나서서 일을 키우는 사람"],
+["고립무원","孤立無援","고립되어 구원받을 데가 없음","모두가 등을 돌려 어디에도 도움을 청할 곳이 없는 처지"],
+["괄목상대","刮目相對","눈을 비비고 상대를 다시 봄. 학식이나 재주가 몰라보게 늘어남","방학 동안 실력이 부쩍 늘어 다시 보게 된 친구"],
+["교언영색","巧言令色","교묘한 말과 꾸민 얼굴빛으로 아첨함","윗사람 앞에서만 입에 발린 말과 간살스러운 웃음을 짓는 사람"],
+["구우일모","九牛一毛","아홉 마리 소 가운데 털 한 가닥. 매우 하찮은 것","대부호의 전 재산에 비하면 껌값에 불과한 벌금"],
+["권선징악","勸善懲惡","착한 일을 권장하고 악한 일을 징계함","착한 흥부는 복을 받고 심술궂은 놀부는 벌을 받는 결말"],
+["근묵자흑","近墨者黑","먹을 가까이하면 검어짐. 나쁜 사람과 어울리면 물들기 쉬움","노는 무리와 어울리더니 어느새 함께 수업을 빠지기 시작한 학생"],
+["금의환향","錦衣還鄕","비단옷을 입고 고향에 돌아옴. 크게 성공하여 고향으로 돌아옴","세계 대회에서 우승하고 고향에서 성대한 환영을 받는 선수"],
+["기고만장","氣高萬丈","기운이 만 길이나 뻗침. 일이 잘되어 우쭐하며 뽐냄","한 번 1등 했다고 세상을 다 가진 듯 우쭐대는 학생"],
+["낭중지추","囊中之錐","주머니 속의 송곳. 뛰어난 사람은 숨어 있어도 저절로 드러남","묵묵히 일해도 실력이 저절로 드러나 결국 발탁된 신입 사원"],
+["노심초사","勞心焦思","몹시 마음을 쓰며 애를 태움","합격자 발표를 기다리며 밤새 마음을 졸이는 수험생"],
+["동상이몽","同床異夢","같은 잠자리에서 다른 꿈을 꿈. 겉으로는 함께하나 속셈은 다름","같은 조별 과제를 하면서 서로 딴 속셈을 품고 있는 조원들"],
+["두문불출","杜門不出","문을 닫아걸고 밖에 나가지 않음","시험 기간 내내 방에 틀어박혀 한 발짝도 나오지 않는 학생"],
+["명약관화","明若觀火","불을 보듯 분명하고 뻔함","연습을 하나도 안 했으니 결과가 불 보듯 뻔한 시합"],
+["목불인견","目不忍見","눈 뜨고는 차마 볼 수 없음","태풍이 휩쓸고 간 마을의 차마 볼 수 없는 처참한 광경"],
+["무릉도원","武陵桃源","복숭아꽃 피는 별천지. 속세를 떠난 이상향","속세의 시름을 잊게 하는 그림 같은 산속 마을"],
+["박장대소","拍掌大笑","손뼉을 치며 크게 웃음","친구의 우스갯소리에 온 교실이 손뼉을 치며 웃음바다가 된 순간"],
+["백골난망","白骨難忘","백골이 되어도 잊기 어려움. 죽어서도 잊지 못할 큰 은혜","물에 빠진 자신을 구해 준 은인을 평생 잊지 못하는 마음"],
+["백발백중","百發百中","백 번 쏘아 백 번 맞힘. 예상이나 계획이 그대로 들어맞음","찍어 준 예상 문제가 족족 시험에 나오는 선생님"],
+["사상누각","沙上樓閣","모래 위에 지은 누각. 기초가 약하여 오래가지 못함","기본 개념 없이 요령만 외운 공부가 응용문제 앞에서 와르르 무너지는 순간"],
+["설왕설래","說往說來","서로 말이 오고 감. 옳고 그름을 따지며 옥신각신함","결론은 없이 말만 하염없이 오가는 댓글 창 논쟁"],
+["소탐대실","小貪大失","작은 것을 탐하다가 큰 것을 잃음","배송비 삼천 원을 아끼려다 물건을 잘못 사서 크게 손해 본 사람"],
+["속수무책","束手無策","손을 묶은 듯 어찌할 도리가 없음","갑작스러운 정전 앞에서 아무 대책 없이 발만 동동 구르는 상황"],
+["승승장구","乘勝長驅","싸움에 이긴 기세를 타고 계속 몰아침","연승 행진을 이어 가며 결승까지 거침없이 내달리는 팀"],
+["시기상조","時機尙早","어떤 일을 하기에 아직 때가 이름","걸음마도 못 뗀 아기에게 벌써 축구를 가르치자는 제안"],
+["심사숙고","深思熟考","깊이 생각하고 곰곰이 헤아림","진로를 결정하기 전에 몇 달을 두고 신중히 고민하는 학생"],
+["아비규환","阿鼻叫喚","여러 사람이 참혹한 지경에 빠져 울부짖는 참상","불이 난 건물에서 비명이 뒤엉킨 아수라장 같은 현장"],
+["어불성설","語不成說","말이 조금도 사리에 맞지 않음","지각을 해 놓고 오히려 개근상을 달라는 억지 주장"],
+["오매불망","寤寐不忘","자나 깨나 잊지 못함","전학 간 단짝 친구를 자나 깨나 그리워하는 아이"],
+["오합지졸","烏合之卒","까마귀 떼처럼 규율 없는 병졸. 훈련이 안 된 어중이떠중이 무리","대회 전날 급조되어 손발이 하나도 맞지 않는 팀"],
+["우왕좌왕","右往左往","이리저리 왔다 갔다 하며 갈팡질팡함","화재경보가 울리자 방향을 못 잡고 이리저리 몰려다니는 사람들"],
+["유명무실","有名無實","이름만 있고 실속은 없음","만들어 놓기만 하고 아무도 지키지 않는 학급 규칙"],
+["이구동성","異口同聲","입은 다르나 목소리는 같음. 여러 사람의 말이 한결같음","반 학생 모두가 한목소리로 같은 소풍 장소를 외치는 상황"],
+["이열치열","以熱治熱","열은 열로써 다스림","한여름 복날에 오히려 펄펄 끓는 삼계탕을 먹는 풍습"],
+["일사천리","一瀉千里","강물이 쏟아져 단숨에 천 리를 감. 일이 거침없이 빨리 진행됨","모두가 찬성하여 안건이 막힘없이 척척 통과된 회의"],
+["일취월장","日就月將","나날이 다달이 자라거나 발전함","매일 꾸준히 연습하더니 실력이 눈에 띄게 늘어 가는 후배"],
+["자승자박","自繩自縛","제 줄로 제 몸을 묶음. 자기 말과 행동에 자기가 얽매여 곤란해짐","큰소리치며 내건 약속 때문에 오히려 제 발목이 잡힌 사람"],
+["적재적소","適材適所","알맞은 인재를 알맞은 자리에 씀","꼼꼼한 친구에게 회계를, 활발한 친구에게 홍보를 맡긴 조장"],
+["주객전도","主客顚倒","주인과 손님의 자리가 뒤바뀜. 중요한 것과 사소한 것이 뒤바뀜","공부하려고 산 태블릿으로 정작 게임만 하고 있는 상황"],
+["죽마고우","竹馬故友","대나무 말을 타고 놀던 벗. 어릴 때부터 함께 자란 오랜 친구","어린 시절 골목에서 함께 뛰놀며 자란 소꿉동무"],
+["천고마비","天高馬肥","하늘은 높고 말은 살찜. 풍요롭고 맑은 가을","하늘이 유난히 높고 푸른, 책 읽기 좋은 가을날"],
+["풍전등화","風前燈火","바람 앞의 등불. 매우 위태로운 처지","강풍 앞의 촛불처럼 언제 무너질지 모르는 위태로운 성"],
+["학수고대","鶴首苦待","학처럼 목을 길게 빼고 간절히 기다림","군대 간 형의 휴가 날짜만을 목이 빠지게 기다리는 동생"],
+["호가호위","狐假虎威","여우가 호랑이의 위세를 빌림. 남의 권세를 빌려 위세를 부림","사장 아들이라는 이유만으로 직원들에게 함부로 위세를 부리는 사람"]
+];
+const STATUE_ICONS = ["🗿","🐢","🐯","🐉","🦅","🐎","🦌","🐍","🦉","🐺","🦁","🐘","🦊","🐻","🦢","🐗","🐸","🦕","⛩️","🏮","🪷","🔔","🐦","🐲"];
+const STATUE_COUNT = 15;
+
+/* ═══════════════ 기본 설정 ═══════════════ */
+const TILE=32, COLS=15, ROWS=11;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const dlg=document.getElementById("dlg"), dlgSp=document.getElementById("dlgSp"), dlgTxt=document.getElementById("dlgTxt");
+const modal=document.getElementById("modal"), fade=document.getElementById("fade");
+const hudL=document.getElementById("hudL"), hudR=document.getElementById("hudR");
+
+let mode="title", scene="cafe", playerName="";
+let px=7, py=9, dir="down", stepFrame=0;
+let statues=[], cleared=0, yeomraVisible=false;
+let dialogQueue=[], dialogDone=null, typing=null, fullText="";
+let runStart=0, finished=false, memLB=[];
+/* ★★★ 통합 랭킹 서버 주소 ★★★
+   Google Apps Script 웹 앱 URL을 아래 따옴표 안에 붙여넣으세요.
+   비워 두면 이 기기에만 기록이 저장됩니다. */
+const SERVER_URL="";
+const FORBIDDEN=["정규영","류용수","구교훈","이한빈","홍주혜","장해든누리","해든누리","조경현","김소정","김훈"];
+
+const eun=n=>{const c=n.charCodeAt(n.length-1);if(c<0xAC00||c>0xD7A3)return n+"은(는)";return n+(((c-0xAC00)%28)>0?"은":"는");};
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+/* ═══════════════ 맵 데이터 ═══════════════ */
+const DESKS=[[3,3],[7,3],[11,3],[3,6],[7,6],[11,6]];
+const SEATS=DESKS.map(([x,y])=>[x,y+1]);
+const COUNTER=[[1,1],[2,1],[3,1]];
+const PLANTS=[[13,1],[1,8],[13,8]];
+const EXIT=[7,10];
+
+function isWall(x,y){ return x<=0||x>=COLS-1||y<=0||y>=ROWS-1; }
+function inList(list,x,y){ return list.some(p=>p[0]===x&&p[1]===y); }
+function statueAt(x,y){ return statues.find(s=>s.x===x&&s.y===y); }
+function blocked(x,y){
+  if(scene==="cafe") return isWall(x,y)||inList(DESKS,x,y)||inList(COUNTER,x,y)||inList(PLANTS,x,y);
+  if(x===EXIT[0]&&y===EXIT[1]) return true;
+  if(isWall(x,y)) return true;
+  if(statueAt(x,y)) return true;
+  if(yeomraVisible && x>=6&&x<=8&&y>=1&&y<=3) return true;
+  return false;
+}
+
+/* ═══════════════ 그리기 ═══════════════ */
+let T=0; // 초 단위 시간
+const rr=(x,y,w,h,r)=>{ // 둥근 사각형
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+};
+const emoji=(e,x,y,size)=>{ ctx.font=size+"px serif"; ctx.textAlign="center"; ctx.fillText(e,x,y); };
+
+/* ── 스터디카페 ── */
+function drawCafe(){
+  // 벽(따뜻한 우드)
+  ctx.fillStyle="#8a6a4e"; ctx.fillRect(0,0,cv.width,cv.height);
+  // 마루 바닥
+  for(let y=1;y<ROWS-1;y++)for(let x=1;x<COLS-1;x++){
+    ctx.fillStyle=(y%2? "#e9d9b8":"#f2e4c6");
+    ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+    ctx.fillStyle="#dcc9a3"; ctx.fillRect(x*TILE,y*TILE+TILE-2,TILE,2);
+  }
+  // 창문(밤하늘)
+  for(let i=0;i<3;i++){
+    const wx=(4+i*4)*TILE;
+    ctx.fillStyle="#5c4636"; ctx.fillRect(wx-3,4,TILE*2+6,TILE-6);
+    ctx.fillStyle="#1c2a52"; ctx.fillRect(wx,7,TILE*2,TILE-12);
+    ctx.fillStyle="#fff";
+    const tw = (Math.sin(T*2+i*2)>0)?1:0;
+    ctx.fillRect(wx+8,12,2,2); ctx.fillRect(wx+30+tw,18,2,2); ctx.fillRect(wx+48,10+tw,2,2);
+    if(i===2){ ctx.fillStyle="#ffe9a8"; ctx.beginPath(); ctx.arc(wx+50,15,5,0,7); ctx.fill(); }
+    ctx.fillStyle="#5c4636"; ctx.fillRect(wx+TILE-1,7,2,TILE-12);
+  }
+  // 간판
+  ctx.fillStyle="#fff3dd"; ctx.font="11px NeoDGM,monospace"; ctx.textAlign="left";
+  ctx.fillText("☕ STUDY CAFE", 8, 20);
+  // 카운터
+  ctx.fillStyle="#a5714b"; rr(1*TILE+2,1*TILE+4,TILE*3-4,TILE-6,5); ctx.fill();
+  ctx.fillStyle="#7c522f"; ctx.fillRect(1*TILE+2,2*TILE-8,TILE*3-4,5);
+  emoji("☕",1*TILE+18,1*TILE+26,15); emoji("🧁",2*TILE+16,1*TILE+26,14); emoji("🫖",3*TILE+14,1*TILE+26,14);
+  // 화분
+  for(const [x,y] of PLANTS) emoji("🪴",x*TILE+TILE/2,y*TILE+26,20);
+  // 러그
+  ctx.fillStyle="#ffc9d6"; rr(6*TILE+6,8*TILE+4,TILE*3-12,TILE*2-14,10); ctx.fill();
+  ctx.fillStyle="#ffb3c6"; rr(6*TILE+12,8*TILE+9,TILE*3-24,TILE*2-24,8); ctx.fill();
+  // 책상(큐비클)
+  for(const [x,y] of DESKS){
+    const X=x*TILE,Y=y*TILE;
+    ctx.fillStyle="#cdd6de"; ctx.fillRect(X-2,Y-4,TILE+4,6);                 // 칸막이
+    ctx.fillStyle="#b98d5e"; rr(X+1,Y+6,TILE-2,TILE-10,4); ctx.fill();       // 책상
+    ctx.fillStyle="#966a42"; ctx.fillRect(X+1,Y+TILE-8,TILE-2,4);
+    ctx.fillStyle="#fffdf5"; ctx.fillRect(X+6,Y+12,12,9);                    // 책
+    ctx.fillStyle="#e8636f"; ctx.fillRect(X+11,Y+12,2,9);
+    ctx.fillStyle="#3f7f5f"; ctx.fillRect(X+22,Y+8,6,4);                     // 스탠드
+    ctx.fillStyle="#2c5c44"; ctx.fillRect(X+24,Y+12,2,8);
+    ctx.fillStyle="#fff6c9"; ctx.globalAlpha=.5; ctx.beginPath(); ctx.arc(X+22,Y+16,7,0,7); ctx.fill(); ctx.globalAlpha=1;
+  }
+  // 의자(분홍 스툴)
+  for(const [x,y] of SEATS){
+    if(px===x&&py===y) continue;
+    const X=x*TILE,Y=y*TILE;
+    ctx.fillStyle="#ff9eb5"; rr(X+8,Y+10,16,12,6); ctx.fill();
+    ctx.fillStyle="#e07f98"; ctx.fillRect(X+10,Y+22,3,5); ctx.fillRect(X+19,Y+22,3,5);
+    ctx.fillStyle="#ffd3de"; ctx.fillRect(X+11,Y+13,5,3);
+  }
+  // 입구 매트
+  ctx.fillStyle="#7fb8a0"; rr(7*TILE+3,(ROWS-1)*TILE+3,TILE-6,TILE-10,4); ctx.fill();
+  ctx.fillStyle="#eafff4"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
+  ctx.fillText("WELCOME",7*TILE+16,(ROWS-1)*TILE+18);
+}
+
+/* ── 저승 ── */
+function drawHell(){
+  ctx.fillStyle="#1f1433"; ctx.fillRect(0,0,cv.width,cv.height);
+  // 돌바닥
+  for(let y=1;y<ROWS-1;y++)for(let x=1;x<COLS-1;x++){
+    ctx.fillStyle=((x+y)%2? "#342650":"#3b2b59");
+    rr(x*TILE+1,y*TILE+1,TILE-2,TILE-2,4); ctx.fill();
+  }
+  // 벽 장식
+  ctx.fillStyle="#150d24"; ctx.fillRect(0,0,cv.width,TILE); ctx.fillRect(0,(ROWS-1)*TILE,cv.width,TILE);
+  ctx.fillRect(0,0,TILE,cv.height); ctx.fillRect((COLS-1)*TILE,0,TILE,cv.height);
+  // 흔들리는 홍등
+  for(let i=0;i<4;i++){
+    const lx=(2.5+i*3.3)*TILE + Math.sin(T*1.8+i)*3;
+    ctx.strokeStyle="#5c4a2a"; ctx.beginPath(); ctx.moveTo((2.5+i*3.3)*TILE,0); ctx.lineTo(lx,14); ctx.stroke();
+    emoji("🏮",lx,30,18);
+  }
+  // 안개
+  ctx.fillStyle="#ffffff";
+  for(let i=0;i<3;i++){
+    const fx=((T*12+i*160)%(cv.width+120))-60;
+    ctx.globalAlpha=.05;
+    ctx.beginPath(); ctx.ellipse(fx,120+i*70,70,16,0,0,7); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // 염라대왕 단상
+  if(yeomraVisible){
+    ctx.fillStyle="#4a1526"; rr(5*TILE,1*TILE-4,TILE*5,TILE*3,8); ctx.fill();
+    ctx.fillStyle="#6b1f36"; rr(5*TILE+6,1*TILE+2,TILE*5-12,TILE*3-12,6); ctx.fill();
+  }
+  // 출구(붉은 문)
+  const ex=EXIT[0]*TILE, ey=EXIT[1]*TILE;
+  ctx.fillStyle="#c9414e"; ctx.fillRect(ex-6,ey-10,TILE+12,8);
+  ctx.fillRect(ex-6,ey-10,6,TILE+8); ctx.fillRect(ex+TILE,ey-10,6,TILE+8);
+  ctx.fillStyle="#000"; ctx.fillRect(ex+2,ey-2,TILE-4,TILE);
+  ctx.fillStyle="#ff9eb5"; ctx.font="11px NeoDGM,monospace"; ctx.textAlign="center";
+  ctx.fillText("출구",ex+TILE/2,ey+14);
+}
+function drawStatues(){
+  statues.forEach((s,i)=>{
+    const X=s.x*TILE, Y=s.y*TILE;
+    const bob=s.cleared?0:Math.sin(T*2.4+i)*1.6;
+    ctx.globalAlpha=s.cleared?.4:1;
+    // 받침
+    ctx.fillStyle="#8f88ad"; rr(X+5,Y+19,TILE-10,10,4); ctx.fill();
+    ctx.fillStyle="#a9a2c6"; rr(X+8,Y+15,TILE-16,7,3); ctx.fill();
+    // 은은한 빛
+    if(!s.cleared){
+      ctx.fillStyle="#c9b8ff"; ctx.globalAlpha=.14+.06*Math.sin(T*2.4+i);
+      ctx.beginPath(); ctx.arc(X+TILE/2,Y+10,13,0,7); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    emoji(s.icon, X+TILE/2, Y+16+bob, 17);
+    ctx.globalAlpha=1;
+    if(s.cleared) emoji("✨",X+TILE/2,Y+8,12);
+  });
+}
+
+/* ── 치비 캐릭터 ── */
+function drawPlayer(){
+  const X=px*TILE+2, Y=py*TILE-8;
+  const bob=(stepFrame%2)?1:0;
+  const blink=(T%3.4)<.14;
+  // 그림자
+  ctx.fillStyle="#00000030"; ctx.beginPath(); ctx.ellipse(X+14,py*TILE+27,10,3.5,0,0,7); ctx.fill();
+  // 발
+  ctx.fillStyle="#8a5a3a";
+  ctx.fillRect(X+8,Y+30+bob,5,4); ctx.fillRect(X+16,Y+30-bob,5,4);
+  // 몸(노란 후드)
+  ctx.fillStyle="#ffd166"; rr(X+6,Y+21+bob,17,11,4); ctx.fill();
+  ctx.fillStyle="#f4b942"; ctx.fillRect(X+13,Y+23+bob,3,8); // 지퍼
+  // 팔
+  ctx.fillStyle="#ffd166"; ctx.fillRect(X+3,Y+22+bob,4,7); ctx.fillRect(X+22,Y+22+bob,4,7);
+  // 머리(크고 둥글게)
+  ctx.fillStyle="#ffe0bd"; rr(X+3,Y+2+bob,23,20,9); ctx.fill();
+  // 머리카락
+  ctx.fillStyle="#5a3a22";
+  rr(X+2,Y+bob,25,10,8); ctx.fill();
+  ctx.fillRect(X+2,Y+6+bob,5,8); ctx.fillRect(X+22,Y+6+bob,5,8);
+  // 뻗친 머리
+  ctx.strokeStyle="#5a3a22"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(X+14,Y+bob); ctx.quadraticCurveTo(X+17,Y-5+bob,X+20,Y-2+bob); ctx.stroke();
+  if(dir==="up"){ ctx.fillStyle="#5a3a22"; rr(X+4,Y+3+bob,21,17,8); ctx.fill(); return; }
+  // 눈 + 볼터치
+  ctx.fillStyle="#2a2a2a";
+  const ey=Y+12+bob;
+  if(blink){
+    ctx.fillRect(X+8,ey+2,5,2); ctx.fillRect(X+17,ey+2,5,2);
+  }else if(dir==="down"){
+    ctx.fillRect(X+9,ey,4,5); ctx.fillRect(X+17,ey,4,5);
+    ctx.fillStyle="#fff"; ctx.fillRect(X+10,ey+1,2,2); ctx.fillRect(X+18,ey+1,2,2);
+  }else if(dir==="left"){
+    ctx.fillRect(X+6,ey,4,5); ctx.fillRect(X+14,ey,4,5);
+    ctx.fillStyle="#fff"; ctx.fillRect(X+7,ey+1,2,2); ctx.fillRect(X+15,ey+1,2,2);
+  }else{
+    ctx.fillRect(X+12,ey,4,5); ctx.fillRect(X+20,ey,4,5);
+    ctx.fillStyle="#fff"; ctx.fillRect(X+13,ey+1,2,2); ctx.fillRect(X+21,ey+1,2,2);
+  }
+  ctx.fillStyle="#ffb3ab";
+  ctx.fillRect(X+5,ey+5,4,3); ctx.fillRect(X+20,ey+5,4,3);
+}
+
+/* ── 염라대왕(치비) ── */
+function drawYeomra(){
+  if(!yeomraVisible) return;
+  const X=6*TILE-4, Y=1*TILE-14+Math.sin(T*1.5)*2;
+  // 관모
+  ctx.fillStyle="#15121a"; rr(X+24,Y-8,56,18,4); ctx.fill();
+  ctx.fillRect(X+6,Y+2,92,10);
+  ctx.fillStyle="#ffb85c"; ctx.fillRect(X+24,Y+6,56,4);
+  ctx.font="13px serif"; ctx.textAlign="center"; ctx.fillStyle="#ffb85c";
+  ctx.fillText("王", X+52, Y+5);
+  // 얼굴(둥글둥글)
+  ctx.fillStyle="#f2c9a0"; rr(X+26,Y+12,52,34,14); ctx.fill();
+  // 화난 눈썹 + 눈
+  ctx.fillStyle="#1a1a1a";
+  ctx.save(); ctx.translate(X+38,Y+22); ctx.rotate(.35); ctx.fillRect(-6,-2,13,3); ctx.restore();
+  ctx.save(); ctx.translate(X+66,Y+22); ctx.rotate(-.35); ctx.fillRect(-7,-2,13,3); ctx.restore();
+  ctx.fillRect(X+36,Y+26,5,6); ctx.fillRect(X+63,Y+26,5,6);
+  ctx.fillStyle="#fff"; ctx.fillRect(X+37,Y+27,2,2); ctx.fillRect(X+64,Y+27,2,2);
+  // 볼터치(무섭지만 귀엽게)
+  ctx.fillStyle="#e89a8a"; ctx.fillRect(X+30,Y+33,6,4); ctx.fillRect(X+68,Y+33,6,4);
+  // 수염
+  ctx.fillStyle="#3a3644"; rr(X+40,Y+40,24,16,6); ctx.fill();
+  ctx.fillStyle="#565064"; ctx.fillRect(X+46,Y+42,3,12); ctx.fillRect(X+55,Y+42,3,12);
+  // 도포
+  ctx.fillStyle="#a3273a"; rr(X+10,Y+50,84,44,10); ctx.fill();
+  ctx.fillStyle="#7c1c2c"; ctx.fillRect(X+10,Y+54,14,40); ctx.fillRect(X+80,Y+54,14,40);
+  ctx.fillStyle="#ffb85c"; ctx.fillRect(X+48,Y+54,8,36);
+  // 어깨 구름 문양
+  emoji("☁️",X+18,Y+62,11); emoji("☁️",X+88,Y+62,11);
+}
+
+function render(){
+  T=performance.now()/1000;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(scene==="cafe") drawCafe(); else { drawHell(); drawStatues(); drawYeomra(); }
+  if(mode!=="title") drawPlayer();
+  // 따뜻한 비네트(카페만)
+  if(scene==="cafe"){
+    const g=ctx.createRadialGradient(cv.width/2,cv.height/2,120,cv.width/2,cv.height/2,320);
+    g.addColorStop(0,"#ffb85c00"); g.addColorStop(1,"#7a4a1a2e");
+    ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height);
+  }
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+/* ═══════════════ 대화 시스템 ═══════════════ */
+function showDialog(lines, done){
+  dialogQueue=[...lines]; dialogDone=done||null;
+  dlg.style.display="block"; nextDialog();
+}
+function nextDialog(){
+  if(typing){ clearInterval(typing); typing=null; dlgTxt.textContent=fullText; return; }
+  if(dialogQueue.length===0){
+    dlg.style.display="none";
+    const cb=dialogDone; dialogDone=null;
+    if(cb) cb(); return;
+  }
+  const {sp,text}=dialogQueue.shift();
+  dlgSp.textContent=sp; fullText=text; dlgTxt.textContent="";
+  let i=0;
+  typing=setInterval(()=>{
+    dlgTxt.textContent=fullText.slice(0,++i);
+    if(i>=fullText.length){ clearInterval(typing); typing=null; }
+  },26);
+}
+dlg.addEventListener("click", nextDialog);
+cv.addEventListener("click", ()=>{ if(dlg.style.display==="block") nextDialog(); });
+
+/* ═══════════════ 이동 ═══════════════ */
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+function tryMove(d){
+  if(mode!=="cafe"&&mode!=="explore") return;
+  if(dlg.style.display==="block"||modal.style.display==="block") return;
+  dir=d;
+  const [dx,dy]=DIRS[d];
+  const nx=px+dx, ny=py+dy;
+  if(scene==="hell"){
+    const st=statueAt(nx,ny);
+    if(st){ if(!st.cleared) openQuiz(st); return; }
+    if(nx===EXIT[0]&&ny===EXIT[1]){ openExitConfirm(); return; }
+  }
+  if(blocked(nx,ny)) return;
+  px=nx; py=ny; stepFrame++;
+  if(scene==="cafe" && mode==="cafe" && inList(SEATS,px,py)) openSeatChoice();
+}
+document.addEventListener("keydown",e=>{
+  const k=e.key;
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(k)) e.preventDefault();
+  if(dlg.style.display==="block" && (k===" "||k==="Enter"||k==="z"||k==="Z")){ nextDialog(); return; }
+  const map={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
+  if(map[k]) tryMove(map[k]);
+});
+document.querySelectorAll("#pad button").forEach(b=>{
+  let t=null;
+  const go=()=>tryMove(b.dataset.d);
+  b.addEventListener("pointerdown",e=>{e.preventDefault();go();t=setInterval(go,170);});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>{clearInterval(t);t=null;}));
+});
+
+/* ═══════════════ 모달 ═══════════════ */
+function openModal(html){ modal.innerHTML=html; modal.style.display="block"; }
+function closeModal(){ modal.style.display="none"; modal.innerHTML=""; }
+
+/* ═══════════════ 타이틀 ═══════════════ */
+function showTitle(){
+  mode="title"; scene="cafe"; hudR.textContent="";
+  hudL.textContent="사자성어 여행단";
+  openModal(`
+    <div class="box mini">
+      <div class="title-big yellow" style="letter-spacing:2px;">사자성어<br>여행단</div>
+      <p class="qtext" style="text-align:center;">四字成語 大冒險 RPG 🌙</p>
+      <input id="nameInput" maxlength="8" placeholder="주인공의 이름은?" autocomplete="off">
+      <button class="btn primary" id="startBtn">시작한다</button>
+      <button class="btn" id="lbBtn">🏆 통합 랭킹 보기</button>
+      <p class="hint">※ 퀴즈를 틀리면 그 자리에서 사망합니다</p>
+    </div>`);
+  const input=document.getElementById("nameInput");
+  const start=()=>{
+    const v=input.value.trim();
+    if(!v){ input.placeholder="이름을 입력해야 합니다!"; return; }
+    if(FORBIDDEN.includes(v.replace(/\s+/g,""))){ playerName=v; closeModal(); teacherDeath(); return; }
+    playerName=v; closeModal(); startCafe();
+  };
+  document.getElementById("startBtn").onclick=start;
+  document.getElementById("lbBtn").onclick=()=>{ showRankingModal(); };
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter") start(); });
+  input.focus();
+}
+
+function teacherDeath(){
+  mode="locked";
+  document.getElementById("stage-wrap").classList.add("shake");
+  setTimeout(()=>document.getElementById("stage-wrap").classList.remove("shake"),600);
+  openModal(`
+    <div class="box mini">
+      <div class="title-big red">사망하였습니다</div>
+      <p class="qtext" style="text-align:center;"><b class="yellow">스승을 능멸한 죄.</b><br><br>그 이름은 함부로 쓰는 것이 아니다.</p>
+      <button class="btn primary" id="homeBtn">처음으로</button>
+    </div>`);
+  document.getElementById("homeBtn").onclick=()=>{ closeModal(); showTitle(); };
+}
+
+/* ═══════════════ ① 스터디카페 ═══════════════ */
+function startCafe(){
+  scene="cafe"; px=7; py=9; dir="up"; mode="locked";
+  hudL.textContent=`${playerName} · 스터디카페`; hudR.textContent="🌙 밤 10시";
+  showDialog([
+    {sp:"내레이션", text:`밤 10시. ${eun(playerName)} 혼자 스터디카페에 들어왔다.`},
+    {sp:"내레이션", text:"아무 자리에나 앉아 보자. (분홍 의자로 이동)"}
+  ], ()=>{ mode="cafe"; });
+}
+function openSeatChoice(){
+  mode="locked";
+  openModal(`
+    <div class="box mini">
+      <p class="qtext">${eun(playerName)} 자리에 앉았다.<br>자, 이제 무엇을 할까?</p>
+      <button class="opt" data-c="0">1. 공부한다 📖</button>
+      <button class="opt" data-c="1">2. 유튜브를 본다 📱</button>
+      <button class="opt" data-c="2">3. 멍하니 있는다 🫥</button>
+    </div>`);
+  modal.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ closeModal(); afterChoice(+b.dataset.c); });
+}
+function afterChoice(c){
+  const lines=[
+    [{sp:"내레이션",text:`${eun(playerName)} 굳은 결심으로 책을 폈다.`},
+     {sp:"내레이션",text:"...5분 뒤. 글자가 눈에 들어오지 않는다. 눈꺼풀이 무거워진다."}],
+    [{sp:"내레이션",text:`"딱 한 편만 봐야지." ${eun(playerName)} 유튜브를 켰다.`},
+     {sp:"내레이션",text:"...정신을 차려 보니 세 시간이 지나 있었다. 눈꺼풀이 무거워진다."}],
+    [{sp:"내레이션",text:`${eun(playerName)} 창밖을 바라보며 멍하니 앉아 있었다.`},
+     {sp:"내레이션",text:"...시간은 하염없이 흐르고, 눈꺼풀이 무거워진다."}]
+  ][c];
+  showDialog(lines, ()=>{
+    fade.innerHTML=`잠시 후...<br><br>💤<br><br>${eun(playerName)} 잠이 들었다.`;
+    fade.style.opacity=1; fade.style.pointerEvents="auto";
+    setTimeout(()=>{ enterHell(); },2600);
+  });
+}
+
+/* ═══════════════ ② 한자성어 나라 ═══════════════ */
+function enterHell(){
+  scene="hell"; px=7; py=8; dir="up";
+  statues=[]; cleared=0; yeomraVisible=true;
+  hudL.textContent=`${playerName} · 한자성어 나라`; hudR.textContent="";
+  fade.innerHTML=""; fade.style.opacity=0; fade.style.pointerEvents="none";
+  mode="locked";
+  setTimeout(()=>{
+    showDialog([
+      {sp:playerName, text:"...여긴 어디지?"},
+      {sp:"염라대왕", text:"눈을 떴느냐. 이곳은 이승과 저승 사이, 한자성어 나라이니라."},
+      {sp:"염라대왕", text:"너는 죄를 저질렀으므로, 이 한자성어 나라를 모험해야 한다."},
+      {sp:playerName, text:"제, 제가 무슨 죄를 저질렀죠?"},
+      {sp:"염라대왕", text:"공부하지 않은 죄. 최선을 다하지 않은 죄."},
+      {sp:"염라대왕", text:"최선을 다하지 않았으면서 최선을 다한 척한 죄. 주변을 속이고, 결국 자신까지 속인 죄."},
+      {sp:"염라대왕", text:"결국 공부한 것도 안 한 것도 아닌 채 시간을 낭비한 죄. ...그 죄를 달게 받아라."},
+      {sp:"내레이션", text:"염라대왕이 연기처럼 사라지고, 사방에 석상들이 나타났다!"},
+      {sp:"내레이션", text:`석상 ${STATUE_COUNT}개에 봉인된 사자성어를 모두 풀어야 이승으로 돌아갈 수 있다.`}
+    ], ()=>{
+      yeomraVisible=false; spawnStatues(); mode="explore"; updateHud();
+    });
+  },400);
+}
+function spawnStatues(){
+  const icons=shuffle(STATUE_ICONS).slice(0,STATUE_COUNT);
+  const idioms=shuffle(IDIOMS).slice(0,STATUE_COUNT);
+  const cells=[];
+  for(let y=2;y<=8;y++)for(let x=1;x<=13;x++){
+    if(x===px&&y===py) continue;
+    if(Math.abs(x-px)+Math.abs(y-py)<=1) continue;
+    cells.push([x,y]);
+  }
+  const spots=shuffle(cells).slice(0,STATUE_COUNT);
+  statues=spots.map(([x,y],i)=>({x,y,icon:icons[i],idiom:idioms[i],cleared:false}));
+  runStart=Date.now(); finished=false;
+}
+const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+function updateHud(){
+  const t=(runStart&&!finished)? ` · ⏱ ${fmt((Date.now()-runStart)/1000)}` : "";
+  hudR.textContent=`✨ 석상 정화 ${cleared}/${STATUE_COUNT}${t}`;
+}
+setInterval(()=>{ if(scene==="hell"&&runStart&&!finished) updateHud(); },500);
+
+/* ═══════════════ 순위표 저장 ═══════════════ */
+async function lbLoad(){
+  if(window.storage){
+    try{ const r=await window.storage.get("idiom_lb"); return r?JSON.parse(r.value):[]; }
+    catch(e){ return []; }
+  }
+  try{ const v=localStorage.getItem("idiom_lb"); return v?JSON.parse(v):memLB; }catch(e){ return memLB; }
+}
+async function lbSave(list){
+  memLB=list;
+  if(window.storage){ try{ await window.storage.set("idiom_lb", JSON.stringify(list)); return; }catch(e){} }
+  try{ localStorage.setItem("idiom_lb", JSON.stringify(list)); }catch(e){}
+}
+async function postRecord(name,sec){
+  try{
+    await fetch(SERVER_URL,{
+      method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({name, sec:Math.round(sec)})
+    });
+  }catch(e){}
+}
+async function fetchGlobalLB(){
+  const res=await fetch(SERVER_URL);
+  if(!res.ok) throw new Error("server");
+  const list=await res.json();
+  return list.sort((a,b)=>a.sec-b.sec);
+}
+async function showRankingModal(){
+  openModal(`<div class="box mini"><p class="qtext" style="text-align:center;">랭킹을 불러오는 중...</p></div>`);
+  let list=[], label="이 기기 기록";
+  if(SERVER_URL){
+    try{ list=await fetchGlobalLB(); label="전체 통합 랭킹"; }
+    catch(e){ list=await lbLoad(); }
+  } else { list=await lbLoad(); }
+  list.sort((a,b)=>a.sec-b.sec);
+  const rows=list.slice(0,20).map((e,i)=>
+    `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${i+1}위　${e.name}</span><span>${fmt(e.sec)}</span></div>`
+  ).join("") || `<div style="text-align:center;">아직 기록이 없습니다</div>`;
+  openModal(`
+    <div class="box">
+      <div class="title-big yellow" style="font-size:24px; letter-spacing:2px;">👑 ${label}</div>
+      <div class="explain good">${rows}</div>
+      <button class="btn primary" id="closeLb">닫기</button>
+    </div>`);
+  document.getElementById("closeLb").onclick=()=>{ closeModal(); showTitle(); };
+}
+async function addRecord(name,sec){
+  const list=await lbLoad();
+  const entry={name, sec:Math.round(sec), ts:Date.now()};
+  list.push(entry);
+  list.sort((a,b)=>a.sec-b.sec || a.ts-b.ts);
+  const rank=list.indexOf(entry)+1;
+  const trimmed=list.slice(0,50);
+  await lbSave(trimmed);
+  return {list:trimmed, rank, entry};
+}
+
+/* ═══════════════ 퀴즈 ═══════════════ */
+function openQuiz(st){
+  mode="locked";
+  const [w,h,m,s]=st.idiom;
+  const r=Math.random();
+  let qhtml, options, answerIdx, correctSitu=null;
+  if(r<0.70){
+    /* 유형 1: 상황 제시 → 사자성어 고르기 */
+    const wrongs=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3).map(i=>i[0]);
+    options=shuffle([w,...wrongs]);
+    answerIdx=options.indexOf(w);
+    qhtml=`<span class="tag">【상황】</span> ${s}<br><br>이 상황에 가장 가까운 사자성어는?`;
+  } else if(r<0.90){
+    /* 유형 2: 사자성어 제시 → 알맞은 상황 고르기 */
+    const wrongs=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3).map(i=>i[3]);
+    options=shuffle([s,...wrongs]);
+    answerIdx=options.indexOf(s);
+    correctSitu=s;
+    qhtml=`<span class="tag">【${w}(${h})】</span><br>이 사자성어를 쓰기에 가장 알맞은 상황은?`;
+  } else {
+    /* 유형 3: 뜻 제시 → 사자성어 고르기 */
+    const wrongs=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3).map(i=>i[0]);
+    options=shuffle([w,...wrongs]);
+    answerIdx=options.indexOf(w);
+    qhtml=`<span class="tag">【뜻】</span> ${m}<br><br>이 뜻을 가진 사자성어는?`;
+  }
+  openModal(`
+    <div class="box">
+      <p class="qtext" style="text-align:center; font-size:24px; margin-bottom:6px;">${st.icon}</p>
+      <p class="qtext">${qhtml}</p>
+      ${options.map((o,i)=>`<button class="opt" data-i="${i}">${i+1}. ${o}</button>`).join("")}
+    </div>`);
+  modal.querySelectorAll(".opt").forEach(b=>{
+    b.onclick=()=>{
+      const i=+b.dataset.i;
+      if(i===answerIdx) quizCorrect(st);
+      else quizDeath(options[i], st.idiom, correctSitu);
+    };
+  });
+  const keyH=e=>{
+    const n=parseInt(e.key);
+    if(n>=1&&n<=4){ const btn=modal.querySelectorAll(".opt")[n-1]; if(btn){ document.removeEventListener("keydown",keyH); btn.click(); } }
+  };
+  document.addEventListener("keydown",keyH);
+  modal._keyH=keyH;
+}
+function quizCorrect(st){
+  if(modal._keyH) document.removeEventListener("keydown",modal._keyH);
+  const [w,h,m]=st.idiom;
+  st.cleared=true; cleared++; updateHud();
+  openModal(`
+    <div class="box mini">
+      <p class="qtext green" style="text-align:center; font-size:20px;">🎉 정답! 석상의 봉인이 풀렸다</p>
+      <div class="explain good"><b>${w}(${h})</b><br>${m}</div>
+      <button class="btn primary" id="okBtn">${cleared>=STATUE_COUNT?"...?":"계속 탐험한다"}</button>
+    </div>`);
+  document.getElementById("okBtn").onclick=()=>{
+    closeModal();
+    if(cleared>=STATUE_COUNT) winSequence(); else mode="explore";
+  };
+}
+function quizDeath(pick, idiom, correctSitu){
+  if(modal._keyH) document.removeEventListener("keydown",modal._keyH);
+  const [w,h,m]=idiom;
+  document.getElementById("stage-wrap").classList.add("shake");
+  setTimeout(()=>document.getElementById("stage-wrap").classList.remove("shake"),600);
+  const situLine = correctSitu ? `<br>알맞은 상황: <b>${correctSitu}</b>` : "";
+  openModal(`
+    <div class="box">
+      <div class="title-big red">사 망</div>
+      <p class="qtext">${eun(playerName)} 한자성어 나라에서 스러졌다...<br>염라대왕의 목소리가 들려온다. "공부하지 않은 죄가 이리도 무겁구나."</p>
+      <div class="explain">
+        네가 고른 답: <b>${pick}</b><br>정답: <b>${w}(${h})</b>${situLine}<br><br>${m}
+      </div>
+      <button class="btn primary" id="retryBtn">다시 태어난다 (석상이 바뀝니다)</button>
+      <button class="btn" id="homeBtn">처음으로</button>
+    </div>`);
+  document.getElementById("retryBtn").onclick=()=>{ closeModal(); respawn(); };
+  document.getElementById("homeBtn").onclick=()=>{ closeModal(); showTitle(); };
+}
+function respawn(){
+  px=7; py=8; dir="up"; cleared=0;
+  spawnStatues(); updateHud(); mode="locked";
+  showDialog([{sp:"염라대왕",text:"다시 왔느냐. 석상들이 새로 봉인되었다. 이번에는 부디..."}],()=>{ mode="explore"; });
+}
+
+/* ═══════════════ 출구 ═══════════════ */
+function openExitConfirm(){
+  mode="locked";
+  openModal(`
+    <div class="box mini">
+      <p class="qtext" style="text-align:center;">출구가 검은 아가리를 벌리고 있다.<br><br><b class="yellow">진짜 나가시겠습니까?</b></p>
+      <button class="btn" id="yesBtn">네</button>
+      <button class="btn primary" id="noBtn">아니오</button>
+    </div>`);
+  document.getElementById("noBtn").onclick=()=>{ closeModal(); mode="explore"; };
+  document.getElementById("yesBtn").onclick=()=>{
+    document.getElementById("stage-wrap").classList.add("shake");
+    setTimeout(()=>document.getElementById("stage-wrap").classList.remove("shake"),600);
+    openModal(`
+      <div class="box">
+        <div class="title-big red">사망하였습니다</div>
+        <p class="qtext" style="text-align:center;">언제까지 도망만 칠 텐가.</p>
+        <button class="btn primary" id="retryBtn">다시 태어난다</button>
+        <button class="btn" id="homeBtn">처음으로</button>
+      </div>`);
+    document.getElementById("retryBtn").onclick=()=>{ closeModal(); respawn(); };
+    document.getElementById("homeBtn").onclick=()=>{ closeModal(); showTitle(); };
+  };
+}
+
+/* ═══════════════ 엔딩 ═══════════════ */
+function winSequence(){
+  mode="locked"; yeomraVisible=true;
+  finished=true;
+  const clearSec=(Date.now()-runStart)/1000;
+  showDialog([
+    {sp:"염라대왕", text:"...놀랍구나. 열다섯 석상의 봉인을 모두 풀다니."},
+    {sp:"염라대왕", text:`${playerName}. 공부하지 않은 죄, 이것으로 사면하노라.`},
+    {sp:"염라대왕", text:"이승으로 돌아가거든 오늘 배운 것을 잊지 마라. 도망치지 말고... 스스로를 속이지도 마라."},
+    {sp:"내레이션", text:"눈앞이 하얗게 밝아진다..."}
+  ], ()=>{
+    fade.innerHTML="";
+    fade.style.background="#fff"; fade.style.opacity=1; fade.style.pointerEvents="auto";
+    setTimeout(async ()=>{
+      fade.style.background="#000"; fade.style.opacity=0; fade.style.pointerEvents="none";
+      let res, label="이 기기 기록";
+      if(SERVER_URL){
+        try{
+          await postRecord(playerName, clearSec);
+          await new Promise(r=>setTimeout(r,1500));
+          const list=await fetchGlobalLB();
+          const mySec=Math.round(clearSec);
+          const rank=list.filter(e=>e.sec<mySec).length+1;
+          const idx=list.findIndex(e=>e.name===playerName&&e.sec===mySec);
+          res={list, rank, entry:{name:playerName, sec:mySec, ts:-1, idx}};
+          label="전체 통합 랭킹";
+        }catch(e){ res=await addRecord(playerName, clearSec); }
+      } else {
+        res=await addRecord(playerName, clearSec);
+      }
+      const rows=res.list.slice(0,10).map((e,i)=>{
+        const me=(res.entry.ts===-1)? (i===res.entry.idx) : (e.ts===res.entry.ts);
+        return `<div style="display:flex;justify-content:space-between;gap:8px;${me?'color:var(--lantern);font-weight:bold;':''}">
+          <span>${i+1}위　${e.name}${me?" ◀":""}</span><span>${fmt(e.sec)}</span></div>`;
+      }).join("");
+      openModal(`
+        <div class="box">
+          <div class="title-big green" style="letter-spacing:2px;">생 환</div>
+          <p class="qtext" style="text-align:center;">${eun(playerName)} 스터디카페 책상에서 눈을 떴다.<br>펼쳐진 책 위, 침 자국이 선명하다.</p>
+          <div class="explain good" style="text-align:center;">
+            🏆 칭호 획득<br><b style="font-size:20px;">「사자성어 대장군 ${playerName}」</b><br><br>
+            클리어 시간 <b>${fmt(clearSec)}</b> · 전체 <b>${res.rank}위</b>
+          </div>
+          <div class="explain good">
+            <div style="text-align:center; margin-bottom:8px;">👑 명예의 전당 · ${label}</div>
+            ${rows}
+          </div>
+          <button class="btn primary" id="againBtn">한 번 더 모험한다</button>
+          <button class="btn" id="homeBtn">처음으로</button>
+        </div>`);
+      document.getElementById("againBtn").onclick=()=>{ closeModal(); enterHellDirect(); };
+      document.getElementById("homeBtn").onclick=()=>{ closeModal(); yeomraVisible=false; showTitle(); };
+    },1400);
+  });
+}
+function enterHellDirect(){
+  scene="hell"; px=7; py=8; dir="up"; cleared=0; yeomraVisible=false;
+  hudL.textContent=`${playerName} · 한자성어 나라`;
+  spawnStatues(); updateHud(); mode="explore";
+}
+
+showTitle();
+
+/* ═══════════════ PWA 서비스 워커 등록 ═══════════════ */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
