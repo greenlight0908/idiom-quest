@@ -250,7 +250,7 @@ let runStart=0, finished=false, memLB=[];
 /* ★★★ 통합 랭킹 서버 주소 ★★★
    Google Apps Script 웹 앱 URL을 아래 따옴표 안에 붙여넣으세요.
    비워 두면 이 기기에만 기록이 저장됩니다. */
-const SERVER_URL="";
+const SERVER_URL="https://script.google.com/macros/s/AKfycbwJBpgm6txu7xU2lJOMtjXizcXIEwTDg9T332De-2K8bRg6tirCidC9mKCiPjN2xeAq/exec";
 const FORBIDDEN=["정규영","류용수","구교훈","이한빈","홍주혜","장해든누리","해든누리","조경현","김소정","김훈"];
 
 const eun=n=>{const c=n.charCodeAt(n.length-1);if(c<0xAC00||c>0xD7A3)return n+"은(는)";return n+(((c-0xAC00)%28)>0?"은":"는");};
