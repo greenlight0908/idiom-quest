@@ -1,5 +1,5 @@
 /* 사자성어 여행단 - 서비스 워커 (오프라인 지원) */
-const CACHE = "idiom-quest-v2";   // 게임을 수정하면 v2, v3...으로 올려 주세요
+const CACHE = "idiom-quest-v3";   // 게임을 수정하면 v2, v3...으로 올려 주세요
 const CORE = [
   "./",
   "./index.html",
