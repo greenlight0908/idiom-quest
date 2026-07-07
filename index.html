@@ -93,17 +93,22 @@ input#nameInput:focus{ outline:none; border-color:var(--lantern); }
   font-size:16px; text-align:center; line-height:2; padding:20px; word-break:keep-all;
 }
 #pad{
-  display:grid; grid-template-columns:repeat(3,64px); grid-template-rows:repeat(2,52px);
-  gap:6px; justify-content:center; margin-top:10px;
+  display:flex; gap:8px; justify-content:center; margin-top:8px;
 }
 #pad button{
-  font-family:inherit; font-size:20px; background:var(--night); color:var(--paper);
+  font-family:inherit; font-size:19px; width:23%; max-width:76px; height:46px;
+  background:var(--night); color:var(--paper);
   border:3px solid var(--paper); border-radius:12px; cursor:pointer; user-select:none;
+  touch-action:manipulation;
 }
 #pad button:active{ background:var(--lantern); color:var(--ink); }
-#pad .up{grid-column:2;grid-row:1;} #pad .left{grid-column:1;grid-row:2;}
-#pad .down{grid-column:2;grid-row:2;} #pad .right{grid-column:3;grid-row:2;}
 .hint{ font-size:11px; color:#9a917e; text-align:center; margin-top:8px; }
+@media (max-width:480px){
+  body{ padding:4px; }
+  .hint{ display:none; }
+  #pad button{ height:42px; }
+  #hud{ min-height:28px; font-size:12px; padding:4px 8px; }
+}
 .shake{ animation:shake .5s; }
 @keyframes shake{0%,100%{transform:translate(0,0);}20%{transform:translate(-8px,4px);}40%{transform:translate(8px,-4px);}60%{transform:translate(-6px,-4px);}80%{transform:translate(6px,4px);}}
 @media (prefers-reduced-motion: reduce){ .shake, #dlg .cursor{animation:none;} #fade{transition:none;} }
@@ -119,10 +124,10 @@ input#nameInput:focus{ outline:none; border-color:var(--lantern); }
     <div id="fade"></div>
   </div>
   <div id="pad">
-    <button class="up" data-d="up">▲</button>
-    <button class="left" data-d="left">◀</button>
-    <button class="down" data-d="down">▼</button>
-    <button class="right" data-d="right">▶</button>
+    <button data-d="left">◀</button>
+    <button data-d="up">▲</button>
+    <button data-d="down">▼</button>
+    <button data-d="right">▶</button>
   </div>
   <p class="hint">이동: 방향키 · WASD · 화면 버튼　/　대화 넘기기: 화면 터치 · 스페이스</p>
 </div>
@@ -538,6 +543,21 @@ document.addEventListener("keydown",e=>{
   const map={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
   if(map[k]) tryMove(map[k]);
 });
+/* 캔버스 스와이프로 이동 */
+let swX=0, swY=0, swT=0;
+cv.addEventListener("touchstart",e=>{
+  if(e.touches.length!==1) return;
+  swX=e.touches[0].clientX; swY=e.touches[0].clientY; swT=Date.now();
+},{passive:true});
+cv.addEventListener("touchend",e=>{
+  const t=e.changedTouches[0];
+  const dx=t.clientX-swX, dy=t.clientY-swY;
+  const dist=Math.hypot(dx,dy);
+  if(dist<24 || Date.now()-swT>600) return; // 짧으면 탭으로 처리
+  const dirName=Math.abs(dx)>Math.abs(dy) ? (dx>0?"right":"left") : (dy>0?"down":"up");
+  const steps=Math.min(4, Math.floor(dist/48)+1);
+  for(let i=0;i<steps;i++) tryMove(dirName);
+},{passive:true});
 document.querySelectorAll("#pad button").forEach(b=>{
   let t=null;
   const go=()=>tryMove(b.dataset.d);
@@ -690,7 +710,7 @@ async function postRecord(name,sec){
   }catch(e){}
 }
 async function fetchGlobalLB(){
-  const res=await fetch(SERVER_URL);
+    const res=await fetch(SERVER_URL+"?t="+Date.now(),{cache:"no-store"});
   if(!res.ok) throw new Error("server");
   const list=await res.json();
   return list.sort((a,b)=>a.sec-b.sec);
