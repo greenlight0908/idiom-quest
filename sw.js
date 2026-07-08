@@ -1,5 +1,5 @@
-/* 사자성어 여행단 - 서비스 워커 (오프라인 지원) */
-const CACHE = "idiom-quest-v5";   // 게임을 수정하면 v2, v3...으로 올려 주세요
+/* 사자성어 여행단 - 서비스 워커 (network-first: 온라인이면 항상 최신) */
+const CACHE = "idiom-quest-v6";   // 게임을 수정하면 v7, v8...으로 올려 주세요
 const CORE = [
   "./",
   "./index.html",
@@ -20,21 +20,19 @@ self.addEventListener("activate", e => {
   );
 });
 
-/* 캐시 우선, 없으면 네트워크 → 성공 시 캐시에 저장(폰트 등 외부 리소스 포함) */
+/* network-first: 온라인이면 항상 서버 최신본, 실패(오프라인) 시에만 캐시 */
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   /* 랭킹 서버(Apps Script)는 절대 캐시하지 않음 - 항상 최신 데이터 */
   if (e.request.url.includes("script.google.com") || e.request.url.includes("googleusercontent.com")) return;
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-    })
+    fetch(e.request).then(res => {
+      /* 성공하면 캐시 갱신(오프라인 대비) 후 최신본 반환 */
+      if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))   /* 네트워크 실패 시에만 캐시 폴백 */
   );
 });
