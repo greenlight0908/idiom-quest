@@ -1,5 +1,5 @@
 /* 사자성어 여행단 - 서비스 워커 (network-first: 온라인이면 항상 최신) */
-const CACHE = "idiom-quest-v6";   // 게임을 수정하면 v7, v8...으로 올려 주세요
+const CACHE = "idiom-quest-v7";   // 게임을 수정하면 v7, v8...으로 올려 주세요
 const CORE = [
   "./",
   "./index.html",
@@ -27,12 +27,11 @@ self.addEventListener("fetch", e => {
   if (e.request.url.includes("script.google.com") || e.request.url.includes("googleusercontent.com")) return;
   e.respondWith(
     fetch(e.request).then(res => {
-      /* 성공하면 캐시 갱신(오프라인 대비) 후 최신본 반환 */
       if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
       return res;
-    }).catch(() => caches.match(e.request))   /* 네트워크 실패 시에만 캐시 폴백 */
+    }).catch(() => caches.match(e.request))
   );
 });
