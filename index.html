@@ -969,10 +969,31 @@ function enterHellDirect(){
 
 showTitle();
 
-/* ═══════════════ PWA 서비스 워커 등록 ═══════════════ */
+/* ═══════════════ PWA 서비스 워커 등록 + 자동 업데이트 ═══════════════ */
 if("serviceWorker" in navigator){
+  let refreshing=false;
+  /* 새 서비스 워커가 제어권을 넘겨받으면(=새 버전 활성화) 한 번만 새로고침 */
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(refreshing) return;
+    refreshing=true;
+    location.reload();
+  });
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    navigator.serviceWorker.register("./sw.js").then(reg=>{
+      /* 주기적으로 새 버전 확인(재접속 없이도 갱신 감지) */
+      setInterval(()=>{ reg.update().catch(()=>{}); }, 60*60*1000); // 1시간마다
+      reg.addEventListener("updatefound",()=>{
+        const nw=reg.installing;
+        if(!nw) return;
+        nw.addEventListener("statechange",()=>{
+          /* 새 워커가 설치 완료되고, 기존 컨트롤러가 있으면(=업데이트 상황) 즉시 활성화 요청 */
+          if(nw.state==="installed" && navigator.serviceWorker.controller){
+            nw.postMessage&&nw.postMessage("skip");
+            /* skipWaiting은 sw install에서 이미 호출되므로 controllerchange가 곧 발생 */
+          }
+        });
+      });
+    }).catch(()=>{});
   });
 }
 </script>
