@@ -257,6 +257,7 @@ let runStart=0, finished=false, memLB=[];
    비워 두면 이 기기에만 기록이 저장됩니다. */
 const SERVER_URL="https://script.google.com/macros/s/AKfycbwJBpgm6txu7xU2lJOMtjXizcXIEwTDg9T332De-2K8bRg6tirCidC9mKCiPjN2xeAq/exec";
 const FORBIDDEN=["정규영","류용수","구교훈","이한빈","홍주혜","장해든누리","해든누리","조경현","김소정","김훈"];
+const FORBIDDEN_PART=["프로락틴","상변","규영"];
 
 const eun=n=>{const c=n.charCodeAt(n.length-1);if(c<0xAC00||c>0xD7A3)return n+"은(는)";return n+(((c-0xAC00)%28)>0?"은":"는");};
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -264,6 +265,15 @@ const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math
 /* ═══════════════ 맵 데이터 ═══════════════ */
 const DESKS=[[3,3],[7,3],[11,3],[3,6],[7,6],[11,6]];
 const SEATS=DESKS.map(([x,y])=>[x,y+1]);
+const EMPTY_SEAT=[7,7];
+const STUDENTS=[
+  {x:3,y:4,name:"스미스",type:"boy1",line:"공부하지 않고 돌아다니는 너의 모습 목불인견이군. 어서 공부해."},
+  {x:7,y:4,name:"마리",type:"girl1",line:"공부하지 않고 돌아다니면 읍참마속의 심정으로 영구출입금지 처분을 내린다고 했으니 주의해."},
+  {x:11,y:4,name:"애니",type:"girl2",line:"하하하. 공부 안하고 게임만하다가 기말고사 망친 너를 타산지석 삼아서 스마트폰을 해지했지."},
+  {x:3,y:7,name:"스티븐",type:"boy2",line:"견인불발(堅忍不拔)의 자세로 참고 견디겠어."},
+  {x:11,y:7,name:"숑숑이",type:"dog",line:"옛부터 개권유익(開卷有益)이라 했으니 수불석권(手不釋卷)해야겠어."}
+];
+const studentAt=(x,y)=>STUDENTS.find(s=>s.x===x&&s.y===y);
 const COUNTER=[[1,1],[2,1],[3,1]];
 const PLANTS=[[13,1],[1,8],[13,8]];
 const EXIT=[7,10];
@@ -272,7 +282,7 @@ function isWall(x,y){ return x<=0||x>=COLS-1||y<=0||y>=ROWS-1; }
 function inList(list,x,y){ return list.some(p=>p[0]===x&&p[1]===y); }
 function statueAt(x,y){ return statues.find(s=>s.x===x&&s.y===y); }
 function blocked(x,y){
-  if(scene==="cafe") return isWall(x,y)||inList(DESKS,x,y)||inList(COUNTER,x,y)||inList(PLANTS,x,y);
+  if(scene==="cafe") return isWall(x,y)||inList(DESKS,x,y)||inList(COUNTER,x,y)||inList(PLANTS,x,y)||!!studentAt(x,y);
   if(x===EXIT[0]&&y===EXIT[1]) return true;
   if(isWall(x,y)) return true;
   if(statueAt(x,y)) return true;
@@ -312,7 +322,7 @@ function drawCafe(){
   }
   // 간판
   ctx.fillStyle="#fff3dd"; ctx.font="11px NeoDGM,monospace"; ctx.textAlign="left";
-  ctx.fillText("☕ STUDY CAFE", 8, 20);
+  ctx.fillText("시대정신 스터디카페", 8, 20);
   // 카운터
   ctx.fillStyle="#a5714b"; rr(1*TILE+2,1*TILE+4,TILE*3-4,TILE-6,5); ctx.fill();
   ctx.fillStyle="#7c522f"; ctx.fillRect(1*TILE+2,2*TILE-8,TILE*3-4,5);
@@ -334,18 +344,49 @@ function drawCafe(){
     ctx.fillStyle="#2c5c44"; ctx.fillRect(X+24,Y+12,2,8);
     ctx.fillStyle="#fff6c9"; ctx.globalAlpha=.5; ctx.beginPath(); ctx.arc(X+22,Y+16,7,0,7); ctx.fill(); ctx.globalAlpha=1;
   }
-  // 의자(분홍 스툴)
-  for(const [x,y] of SEATS){
-    if(px===x&&py===y) continue;
-    const X=x*TILE,Y=y*TILE;
+  // 빈 의자(분홍 스툴) - 한 자리만
+  if(!(px===EMPTY_SEAT[0]&&py===EMPTY_SEAT[1])){
+    const X=EMPTY_SEAT[0]*TILE,Y=EMPTY_SEAT[1]*TILE;
     ctx.fillStyle="#ff9eb5"; rr(X+8,Y+10,16,12,6); ctx.fill();
     ctx.fillStyle="#e07f98"; ctx.fillRect(X+10,Y+22,3,5); ctx.fillRect(X+19,Y+22,3,5);
     ctx.fillStyle="#ffd3de"; ctx.fillRect(X+11,Y+13,5,3);
   }
+  // 학생들
+  for(const s of STUDENTS) drawStudent(s);
   // 입구 매트
   ctx.fillStyle="#7fb8a0"; rr(7*TILE+3,(ROWS-1)*TILE+3,TILE-6,TILE-10,4); ctx.fill();
   ctx.fillStyle="#eafff4"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
   ctx.fillText("WELCOME",7*TILE+16,(ROWS-1)*TILE+18);
+}
+
+/* ── 학생 캐릭터 ── */
+function drawStudent(s){
+  const X=s.x*TILE, Y=s.y*TILE;
+  const bob=Math.sin(T*2+s.x+s.y)*1.2;
+  ctx.fillStyle="#00000030"; ctx.beginPath(); ctx.ellipse(X+16,Y+28,10,3,0,0,7); ctx.fill();
+  if(s.type==="dog"){
+    ctx.fillStyle="#8a5a2b"; rr(X+7,Y+14+bob,18,12,6); ctx.fill();
+    ctx.fillStyle="#a06b35";
+    ctx.beginPath(); ctx.arc(X+16,Y+10+bob,9,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+9,Y+5+bob,4,0,7); ctx.arc(X+16,Y+3+bob,4.5,0,7); ctx.arc(X+23,Y+5+bob,4,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+6,Y+13+bob,3.5,0,7); ctx.arc(X+26,Y+13+bob,3.5,0,7); ctx.fill();
+    ctx.fillStyle="#2a2a2a"; ctx.fillRect(X+12,Y+8+bob,2,3); ctx.fillRect(X+18,Y+8+bob,2,3);
+    ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(X+16,Y+13+bob,2,0,7); ctx.fill();
+    ctx.fillStyle="#a06b35"; ctx.beginPath(); ctx.arc(X+27,Y+19+bob,3,0,7); ctx.fill();
+  } else {
+    const hair={boy1:"#2a2a2a",boy2:"#5a3a22",girl1:"#7c4a1e",girl2:"#1a1a1a"}[s.type];
+    const cloth={boy1:"#4a6fb5",boy2:"#3f7f5f",girl1:"#e8b23a",girl2:"#d977a8"}[s.type];
+    const girl=s.type.startsWith("girl");
+    ctx.fillStyle=cloth; rr(X+7,Y+16+bob,18,11,5); ctx.fill();
+    ctx.fillStyle="#ffe0bd"; rr(X+6,Y+2+bob,20,17,8); ctx.fill();
+    ctx.fillStyle=hair; rr(X+5,Y+bob,22,8,7); ctx.fill();
+    if(girl){ ctx.fillRect(X+4,Y+4+bob,4,14); ctx.fillRect(X+24,Y+4+bob,4,14); }
+    else { ctx.fillRect(X+5,Y+4+bob,3,5); ctx.fillRect(X+24,Y+4+bob,3,5); }
+    ctx.fillStyle="#2a2a2a"; ctx.fillRect(X+11,Y+10+bob,3,4); ctx.fillRect(X+18,Y+10+bob,3,4);
+    ctx.fillStyle="#ffb3ab"; ctx.fillRect(X+8,Y+14+bob,3,2); ctx.fillRect(X+21,Y+14+bob,3,2);
+  }
+  ctx.fillStyle="#fff3dd"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
+  ctx.fillText(s.name, X+TILE/2, Y-2);
 }
 
 /* ── 저승 ── */
@@ -527,6 +568,10 @@ function tryMove(d){
   dir=d;
   const [dx,dy]=DIRS[d];
   const nx=px+dx, ny=py+dy;
+  if(scene==="cafe"){
+    const stu=studentAt(nx,ny);
+    if(stu){ dir=d; showDialog([{sp:stu.name, text:stu.line}]); return; }
+  }
   if(scene==="hell"){
     const st=statueAt(nx,ny);
     if(st){ if(!st.cleared) openQuiz(st); return; }
@@ -534,7 +579,7 @@ function tryMove(d){
   }
   if(blocked(nx,ny)) return;
   px=nx; py=ny; stepFrame++;
-  if(scene==="cafe" && mode==="cafe" && inList(SEATS,px,py)) openSeatChoice();
+  if(scene==="cafe" && mode==="cafe" && px===EMPTY_SEAT[0] && py===EMPTY_SEAT[1]) openSeatChoice();
 }
 document.addEventListener("keydown",e=>{
   const k=e.key;
@@ -581,12 +626,14 @@ function showTitle(){
       <button class="btn primary" id="startBtn">시작한다</button>
       <button class="btn" id="lbBtn">🏆 통합 랭킹 보기</button>
       <p class="hint">※ 퀴즈를 틀리면 그 자리에서 사망합니다</p>
+      <p class="hint" style="color:var(--danger);">본명으로 하세요. 이름가지고 장난치다 적발되면 처벌하겠습니다.</p>
     </div>`);
   const input=document.getElementById("nameInput");
   const start=()=>{
     const v=input.value.trim();
     if(!v){ input.placeholder="이름을 입력해야 합니다!"; return; }
-    if(FORBIDDEN.includes(v.replace(/\s+/g,""))){ playerName=v; closeModal(); teacherDeath(); return; }
+    const nv=v.replace(/\s+/g,"");
+    if(FORBIDDEN.includes(nv)||FORBIDDEN_PART.some(p=>nv.includes(p))){ playerName=v; closeModal(); teacherDeath(); return; }
     playerName=v; closeModal(); startCafe();
   };
   document.getElementById("startBtn").onclick=start;
@@ -750,12 +797,13 @@ function openQuiz(st){
   mode="locked";
   const [w,h,m,s]=st.idiom;
   const r=Math.random();
-  let qhtml, options, answerIdx, correctSitu=null;
+  let qhtml, options, answerIdx, correctSitu=null, optIdioms=null;
   if(r<0.70){
     /* 유형 1: 상황 제시 → 사자성어 고르기 */
-    const wrongs=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3).map(i=>i[0]);
-    options=shuffle([w,...wrongs]);
+    const wrongIds=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3);
+    options=shuffle([w,...wrongIds.map(i=>i[0])]);
     answerIdx=options.indexOf(w);
+    optIdioms=options.map(o=>o===w?st.idiom:wrongIds.find(i=>i[0]===o));
     qhtml=`<span class="tag">【상황】</span> ${s}<br><br>이 상황에 가장 가까운 사자성어는?`;
   } else if(r<0.90){
     /* 유형 2: 사자성어 제시 → 알맞은 상황 고르기 */
@@ -766,9 +814,10 @@ function openQuiz(st){
     qhtml=`<span class="tag">【${w}(${h})】</span><br>이 사자성어를 쓰기에 가장 알맞은 상황은?`;
   } else {
     /* 유형 3: 뜻 제시 → 사자성어 고르기 */
-    const wrongs=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3).map(i=>i[0]);
-    options=shuffle([w,...wrongs]);
+    const wrongIds=shuffle(IDIOMS.filter(i=>i[0]!==w)).slice(0,3);
+    options=shuffle([w,...wrongIds.map(i=>i[0])]);
     answerIdx=options.indexOf(w);
+    optIdioms=options.map(o=>o===w?st.idiom:wrongIds.find(i=>i[0]===o));
     qhtml=`<span class="tag">【뜻】</span> ${m}<br><br>이 뜻을 가진 사자성어는?`;
   }
   openModal(`
@@ -781,7 +830,7 @@ function openQuiz(st){
     b.onclick=()=>{
       const i=+b.dataset.i;
       if(i===answerIdx) quizCorrect(st);
-      else quizDeath(options[i], st.idiom, correctSitu);
+      else quizDeath(options[i], st.idiom, correctSitu, optIdioms);
     };
   });
   const keyH=e=>{
@@ -806,7 +855,7 @@ function quizCorrect(st){
     if(cleared>=STATUE_COUNT) winSequence(); else mode="explore";
   };
 }
-function quizDeath(pick, idiom, correctSitu){
+function quizDeath(pick, idiom, correctSitu, optIdioms){
   if(modal._keyH) document.removeEventListener("keydown",modal._keyH);
   const [w,h,m]=idiom;
   document.getElementById("stage-wrap").classList.add("shake");
@@ -819,6 +868,7 @@ function quizDeath(pick, idiom, correctSitu){
       <div class="explain">
         네가 고른 답: <b>${pick}</b><br>정답: <b>${w}(${h})</b>${situLine}<br><br>${m}
       </div>
+      ${optIdioms?`<div class="explain good"><b>보기 사자성어의 올바른 뜻</b><br>${optIdioms.map(o=>`· <b>${o[0]}(${o[1]})</b>: ${o[2]}`).join("<br>")}</div>`:""}
       <button class="btn primary" id="retryBtn">다시 태어난다 (석상이 바뀝니다)</button>
       <button class="btn" id="homeBtn">처음으로</button>
     </div>`);

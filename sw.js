@@ -1,5 +1,5 @@
 /* 사자성어 여행단 - 서비스 워커 (오프라인 지원) */
-const CACHE = "idiom-quest-v4";   // 게임을 수정하면 v2, v3...으로 올려 주세요
+const CACHE = "idiom-quest-v5";   // 게임을 수정하면 v2, v3...으로 올려 주세요
 const CORE = [
   "./",
   "./index.html",
@@ -22,7 +22,7 @@ self.addEventListener("activate", e => {
 
 /* 캐시 우선, 없으면 네트워크 → 성공 시 캐시에 저장(폰트 등 외부 리소스 포함) */
 self.addEventListener("fetch", e => {
-    if (e.request.method !== "GET") return;
+  if (e.request.method !== "GET") return;
   /* 랭킹 서버(Apps Script)는 절대 캐시하지 않음 - 항상 최신 데이터 */
   if (e.request.url.includes("script.google.com") || e.request.url.includes("googleusercontent.com")) return;
   e.respondWith(
