@@ -658,9 +658,13 @@ function showTitle(){
     </div>`);
   const input=document.getElementById("nameInput");
   const start=()=>{
-    const v=input.value.trim();
-    if(!v){ input.placeholder="이름을 입력해야 합니다!"; return; }
-    const nv=v.replace(/\s+/g,"");
+    let v=input.value;
+    v=v.replace(/[\u200B-\u200D\u2060\uFEFF\u00A0\u180E\u2000-\u200A\u202F\u205F\u3000\uFFA0\u1160\u3164\u115F]/g,"");
+    v=v.replace(/\s+/g,"").trim();
+    if(!v){ input.placeholder="이름을 입력하세요 (한글·영문·숫자)"; input.value=""; return; }
+    if(!/^[가-힣a-zA-Z0-9]+$/.test(v)){ input.placeholder="한글·영문·숫자만 쓸 수 있어요"; input.value=""; return; }
+    if([...v].length>8){ input.placeholder="이름이 너무 길어요 (8자 이내)"; input.value=""; return; }
+    const nv=v;
     if(FORBIDDEN.includes(nv)||FORBIDDEN_PART.some(p=>nv.includes(p))){ playerName=v; closeModal(); teacherDeath(); return; }
     playerName=v; closeModal(); startCafe();
   };
@@ -845,7 +849,7 @@ function spawnStatues(){
     cells.push([x,y]);
   }
   const spots=shuffle(cells).slice(0,STATUE_COUNT);
-  statues=spots.map(([x,y],i)=>({x,y,icon:icons[i],idiom:idioms[i],cleared:false}));
+  statues=spots.map(([x,y],i)=>({x,y,idx:i,icon:icons[i],idiom:idioms[i],cleared:false}));
   runStart=Date.now(); finished=false;
   requestToken();
 }
@@ -880,6 +884,16 @@ async function requestToken(){
     });
     const j=await res.json();
     if(j&&j.ok&&j.token) sessionToken=j.token;
+  }catch(e){}
+}
+async function sendProgress(idx){
+  if(!SERVER_URL||!sessionToken) return;
+  try{
+    await fetch(SERVER_URL,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"progress", token:sessionToken, idx})
+    });
   }catch(e){}
 }
 async function submitScore(name){
@@ -983,6 +997,7 @@ function quizCorrect(st){
   if(modal._keyH) document.removeEventListener("keydown",modal._keyH);
   const [w,h,m]=st.idiom;
   st.cleared=true; cleared++; updateHud();
+  sendProgress(st.idx);
   openModal(`
     <div class="box mini">
       <p class="qtext green" style="text-align:center; font-size:20px;">🎉 정답! 석상의 봉인이 풀렸다</p>
