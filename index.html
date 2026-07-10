@@ -256,7 +256,7 @@ let runStart=0, finished=false, memLB=[], sessionToken=null;
    Google Apps Script 웹 앱 URL을 아래 따옴표 안에 붙여넣으세요.
    비워 두면 이 기기에만 기록이 저장됩니다. */
 const SERVER_URL="https://script.google.com/macros/s/AKfycbwJBpgm6txu7xU2lJOMtjXizcXIEwTDg9T332De-2K8bRg6tirCidC9mKCiPjN2xeAq/exec";
-const FORBIDDEN=["정규영","류용수","구교훈","이한빈","홍주혜","장해든누리","해든누리","조경현","김소정","김훈"];
+const FORBIDDEN=["정규영","류용수","구교훈","이한빈","홍주혜","장해든누리","해든누리","조경현","김소정","김훈","이진섭","안정석","문지유","김양식","이윤진","이유진","김창하","송지현","한예원","이광은"];
 const FORBIDDEN_PART=["프로락틴","상변","규영"];
 
 const eun=n=>{const c=n.charCodeAt(n.length-1);if(c<0xAC00||c>0xD7A3)return n+"은(는)";return n+(((c-0xAC00)%28)>0?"은":"는");};
@@ -662,8 +662,8 @@ function showTitle(){
     v=v.replace(/[\u200B-\u200D\u2060\uFEFF\u00A0\u180E\u2000-\u200A\u202F\u205F\u3000\uFFA0\u1160\u3164\u115F]/g,"");
     v=v.replace(/\s+/g,"").trim();
     if(!v){ input.placeholder="이름을 입력하세요 (한글·영문·숫자)"; input.value=""; return; }
-    if(!/^[가-힣a-zA-Z0-9]+$/.test(v)){ input.placeholder="한글·영문·숫자만 쓸 수 있어요"; input.value=""; return; }
-    if([...v].length>8){ input.placeholder="이름이 너무 길어요 (8자 이내)"; input.value=""; return; }
+    if(!/^[가-힣]+$/.test(v)){ input.placeholder="한글만 쓸 수 있어요"; input.value=""; return; }
+    if([...v].length!==3){ input.placeholder="이름은 한글 세 글자로 입력하세요"; input.value=""; return; }
     const nv=v;
     if(FORBIDDEN.includes(nv)||FORBIDDEN_PART.some(p=>nv.includes(p))){ playerName=v; closeModal(); teacherDeath(); return; }
     playerName=v; closeModal(); startCafe();
