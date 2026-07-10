@@ -279,14 +279,20 @@ const DOCTOR_POS=[2,8];
 let champName=null;
 const doctorAt=(x,y)=>(x===DOCTOR_POS[0]&&y===DOCTOR_POS[1]);
 const COUNTER=[[1,1],[2,1],[3,1]];
-const PLANTS=[[13,1],[1,8],[13,8]];
+const PLANTS=[];
 const EXIT=[7,10];
+const CAFE_DOOR=[7,3];
 
 function isWall(x,y){ return x<=0||x>=COLS-1||y<=0||y>=ROWS-1; }
 function inList(list,x,y){ return list.some(p=>p[0]===x&&p[1]===y); }
 function statueAt(x,y){ return statues.find(s=>s.x===x&&s.y===y); }
 function blocked(x,y){
   if(scene==="cafe") return isWall(x,y)||inList(DESKS,x,y)||inList(COUNTER,x,y)||inList(PLANTS,x,y)||!!studentAt(x,y)||doctorAt(x,y);
+  if(scene==="street"){
+    if(x===CAFE_DOOR[0]&&y===CAFE_DOOR[1]) return false;
+    if(y<=3) return true;
+    return isWall(x,y);
+  }
   if(x===EXIT[0]&&y===EXIT[1]) return true;
   if(isWall(x,y)) return true;
   if(statueAt(x,y)) return true;
@@ -414,6 +420,55 @@ function drawDoctor(){
   const label = champName ? `사자성어 박사 ${champName}` : "사자성어 박사 ???";
   ctx.fillStyle="#ffe9a8"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
   ctx.fillText(label, X+TILE/2, Y-6);
+}
+
+/* 거리 (카페 밖) */
+function drawStreet(){
+  const sky=ctx.createLinearGradient(0,0,0,cv.height);
+  sky.addColorStop(0,"#1a1f3a"); sky.addColorStop(1,"#2b2540");
+  ctx.fillStyle=sky; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#fff";
+  for(let i=0;i<20;i++){ const sx=(i*67)%cv.width, sy=(i*41)%70+4; if((Math.sin(T*1.5+i)>0)){ ctx.globalAlpha=.7; ctx.fillRect(sx,sy,2,2); } }
+  ctx.globalAlpha=1;
+  const W=cv.width;
+  const bTop=6, bH=3*TILE+8;
+  drawShop(2, bTop, 4*TILE-6, bH, "#2f4a7a", "#3f5f96");
+  drawShop(4*TILE+2, bTop, 5*TILE-4, bH, "#3a2f5c", "#4d4076");
+  drawShop(9*TILE+4, bTop, W-(9*TILE+4)-4, bH, "#7a2f2f", "#96403f");
+  ctx.textAlign="center"; ctx.font="12px NeoDGM,monospace";
+  ctx.fillStyle="#a9c7ff";
+  ctx.fillText("\uD83D\uDE87 \uC0AC\uB9AC\uC5ED", 2*TILE+(4*TILE-6)/2, bTop+22);
+  ctx.fillStyle="#e8dcff";
+  ctx.fillText("\uC2DC\uB300\uC815\uC2E0\uD559\uC6D0", 4*TILE+2+(5*TILE-4)/2, bTop+22);
+  ctx.font="9px NeoDGM,monospace"; ctx.fillStyle="#c9b8ff";
+  ctx.fillText("STUDY CAFE", 4*TILE+2+(5*TILE-4)/2, bTop+34);
+  ctx.font="12px NeoDGM,monospace"; ctx.fillStyle="#ffcf9e";
+  ctx.fillText("\uD83E\uDD5F \uD558\uC624\uCE20", 9*TILE+4+(W-(9*TILE+4)-4)/2, bTop+22);
+  const dx=CAFE_DOOR[0]*TILE, dy=CAFE_DOOR[1]*TILE;
+  ctx.fillStyle="#ffd98a"; ctx.fillRect(dx+2,dy-TILE+4,TILE-4,TILE-2);
+  ctx.fillStyle="#c99a4a"; ctx.fillRect(dx+2,dy-TILE+4,TILE-4,4);
+  ctx.fillStyle="#7c522f"; ctx.fillRect(dx+TILE/2-1,dy-TILE+8,2,TILE-8);
+  ctx.fillStyle="#fff3dd"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
+  ctx.fillText("\uCE74\uD398 \uC785\uAD6C", dx+TILE/2, dy-TILE-2);
+  ctx.fillStyle="#ffe9a8"; ctx.fillText("\u25B2", dx+TILE/2, dy+16);
+  for(let y=4;y<ROWS-1;y++)for(let x=1;x<COLS-1;x++){ ctx.fillStyle=((x+y)%2? "#4a4656":"#524d60"); ctx.fillRect(x*TILE,y*TILE,TILE,TILE); }
+  ctx.fillStyle="#33313c"; ctx.fillRect(TILE,(ROWS-3)*TILE,cv.width-TILE*2,TILE*2);
+  ctx.fillStyle="#e8c65a";
+  for(let x=1;x<COLS-1;x++){ if(x%2) ctx.fillRect(x*TILE+8,(ROWS-2)*TILE-2,TILE-16,4); }
+  for(const lx of [3,11]){
+    ctx.fillStyle="#5a5560"; ctx.fillRect(lx*TILE+TILE/2-2,4*TILE,4,TILE*2);
+    ctx.fillStyle="#ffe9a8"; ctx.beginPath(); ctx.arc(lx*TILE+TILE/2,4*TILE,6,0,7); ctx.fill();
+    ctx.globalAlpha=.15; ctx.beginPath(); ctx.arc(lx*TILE+TILE/2,4*TILE+8,20,0,7); ctx.fill(); ctx.globalAlpha=1;
+  }
+}
+function drawShop(x,y,w,h,body,roof){
+  ctx.fillStyle=body; ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=roof; ctx.fillRect(x,y,w,10);
+  ctx.fillStyle="#00000030"; ctx.fillRect(x,y+h-6,w,6);
+  ctx.fillStyle="#ffe9a8";
+  const cols=Math.max(2,Math.floor(w/22));
+  for(let r=0;r<2;r++)for(let c=0;c<cols;c++){ if(Math.sin(x+r*3+c*2)>-.3){ ctx.globalAlpha=.55; ctx.fillRect(x+8+c*((w-16)/cols), y+18+r*20, 10, 12); } }
+  ctx.globalAlpha=1;
 }
 
 /* ── 저승 ── */
@@ -549,10 +604,27 @@ function drawYeomra(){
   emoji("☁️",X+18,Y+62,11); emoji("☁️",X+88,Y+62,11);
 }
 
+function drawHellDoctor(){
+  if(!yeomraVisible) return;
+  const X=9*TILE+2, Y=1*TILE+8+Math.sin(T*1.5+1)*2;
+  ctx.fillStyle="#00000030"; ctx.beginPath(); ctx.ellipse(X+16,Y+52,11,3.5,0,0,7); ctx.fill();
+  ctx.fillStyle="#6a4a8a"; rr(X+5,Y+30,22,22,7); ctx.fill();
+  ctx.fillStyle="#7d5aa3"; ctx.fillRect(X+14,Y+30,4,22);
+  ctx.fillStyle="#e8c65a"; ctx.fillRect(X+5,Y+38,22,2);
+  ctx.fillStyle="#ffe0bd"; rr(X+6,Y+12,20,18,8); ctx.fill();
+  ctx.fillStyle="#eef0f2"; ctx.beginPath(); ctx.moveTo(X+9,Y+26); ctx.lineTo(X+16,Y+36); ctx.lineTo(X+23,Y+26); ctx.closePath(); ctx.fill();
+  ctx.fillRect(X+9,Y+24,14,3);
+  ctx.fillStyle="#2a2438"; rr(X+5,Y+4,22,10,3); ctx.fill();
+  ctx.fillStyle="#e8c65a"; ctx.fillRect(X+14,Y+4,4,10);
+  ctx.fillStyle="#2a2a2a"; ctx.fillRect(X+10,Y+18,3,3); ctx.fillRect(X+19,Y+18,3,3);
+  ctx.fillStyle="#ffe9a8"; ctx.font="8px NeoDGM,monospace"; ctx.textAlign="center";
+  ctx.fillText(champName?`\uC0AC\uC790\uC131\uC5B4 \uBC15\uC0AC ${champName}`:"\uC0AC\uC790\uC131\uC5B4 \uBC15\uC0AC", X+16, Y+2);
+}
+
 function render(){
   T=performance.now()/1000;
   ctx.clearRect(0,0,cv.width,cv.height);
-  if(scene==="cafe") drawCafe(); else { drawHell(); drawStatues(); drawYeomra(); }
+  if(scene==="cafe") drawCafe(); else if(scene==="street") drawStreet(); else { drawHell(); drawStatues(); drawYeomra(); drawHellDoctor(); }
   if(mode!=="title") drawPlayer();
   // 따뜻한 비네트(카페만)
   if(scene==="cafe"){
@@ -599,6 +671,10 @@ function tryMove(d){
     const stu=studentAt(nx,ny);
     if(stu){ dir=d; showDialog([{sp:stu.name, text:stu.line}]); return; }
     if(doctorAt(nx,ny)){ dir=d; talkToDoctor(); return; }
+    if(nx===EXIT[0]&&ny===EXIT[1]){ dir=d; enterStreet(); return; }
+  }
+  if(scene==="street"){
+    if(nx===CAFE_DOOR[0]&&ny===CAFE_DOOR[1]){ dir=d; enterCafeFromStreet(); return; }
   }
   if(scene==="hell"){
     const st=statueAt(nx,ny);
@@ -696,6 +772,18 @@ function startCafe(){
     {sp:"내레이션", text:`밤 10시. ${eun(playerName)} 혼자 스터디카페에 들어왔다.`},
     {sp:"내레이션", text:"아무 자리에나 앉아 보자. (분홍 의자로 이동)"}
   ], ()=>{ mode="cafe"; });
+}
+function enterStreet(){
+  scene="street"; px=7; py=8; dir="down"; mode="explore";
+  hudL.textContent=`${playerName} \u00B7 \uC0AC\uB9AC\uC5ED \uAC70\uB9AC`; hudR.textContent="\uD83C\uDF19 \uBC24 10\uC2DC";
+  showDialog([
+    {sp:"\uB0B4\uB808\uC774\uC158", text:"\uC2A4\uD130\uB514\uCE74\uD398 \uBC16\uC73C\uB85C \uB098\uC654\uB2E4. \uC0AC\uB9AC\uC5ED \uC55E \uAC70\uB9AC\uB294 \uB2A6\uC740 \uBC24\uC5D0\uB3C4 \uBD88\uC774 \uCF1C\uC838 \uC788\uB2E4."},
+    {sp:"\uB0B4\uB808\uC774\uC158", text:"\uAE38 \uAC74\uB108 \uD558\uC624\uCE20\uC5D0\uC11C \uACE0\uC18C\uD55C \uB0C4\uC0C8\uAC00 \uD48D\uACA8\uC628\uB2E4. (\uCE74\uD398 \uC785\uAD6C \u25B2\uB85C \uB4E4\uC5B4\uAC00\uBA74 \uB2E4\uC2DC \uCE74\uD398)"}
+  ], ()=>{ mode="explore"; });
+}
+function enterCafeFromStreet(){
+  scene="cafe"; px=7; py=2; dir="down"; mode="cafe";
+  hudL.textContent=`${playerName} \u00B7 \uC2A4\uD130\uB514\uCE74\uD398`; hudR.textContent="\uD83C\uDF19 \uBC24 10\uC2DC";
 }
 async function fetchChampion(){
   try{
@@ -1119,9 +1207,11 @@ function winSequence(){
             <div style="text-align:center; margin-bottom:8px;">👑 명예의 전당 · ${label}</div>
             ${rows}
           </div>
-          <button class="btn primary" id="againBtn">한 번 더 모험한다</button>
+          <button class="btn primary" id="cafeBtn">스터디카페로 돌아간다</button>
+          <button class="btn" id="againBtn">한 번 더 모험한다</button>
           <button class="btn" id="homeBtn">처음으로</button>
         </div>`);
+      document.getElementById("cafeBtn").onclick=()=>{ closeModal(); yeomraVisible=false; finished=false; startCafe(); };
       document.getElementById("againBtn").onclick=()=>{ closeModal(); enterHellDirect(); };
       document.getElementById("homeBtn").onclick=()=>{ closeModal(); yeomraVisible=false; showTitle(); };
     },1400);
